@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI Transaction Coordinator — 118 Cottage Grove Ave</title>
+<title>AI Real Estate Agent — 118 Cottage Grove Ave</title>
 <style>
   :root{
     --bg:#f6f7f9; --panel:#fff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
@@ -225,7 +225,7 @@
 </head>
 <body>
 <header class="top">
-  <h1>AI Transaction Coordinator</h1>
+  <h1>AI Real Estate Agent</h1>
   <span class="tag">real package · 118 Cottage Grove Ave</span>
   <span class="spacer"></span>
   <div class="roles" id="roles"></div>
@@ -724,7 +724,7 @@ advisory: d => `${carHead(d)}
 booklet: d => `<div class="car-hd"><div class="org">Statutory Booklet — Delivery Record</div>
     <div class="ttl">${d.name.replace('Booklet — ','')}</div><div class="rev">${d.form}</div></div>
   <div class="stat">This item is a <b>published booklet</b>, not a fillable form. California law requires that it be
-    delivered to the buyer; the seller and agent have no data to enter on it. The AI coordinator's only job here is to
+    delivered to the buyer; the seller and agent have no data to enter on it. The AI Real Estate Agent's only job here is to
     confirm the correct edition is attached and that delivery is acknowledged on the receipt page.</div>
   <div class="sec">Delivery Record</div>
   <div class="stat">Attached to package: <span class="val">Yes — ${DEAL.glideDate}</span></div>
@@ -1376,7 +1376,7 @@ function labView(){
     ${done?`<div class="card"><h2>Assertions</h2>
       ${RUN.results.map(r=>`<div class="kv"><span>${esc(r.label)}</span>
         <span class="pill ${r.p?'p-ok':'p-bad'}">${r.p?'PASS':'FAIL'}</span></div>`).join('')}</div>`:''}
-    <div class="card"><h2>Step log <span class="sub">what the coordinator is doing, and why</span></h2>
+    <div class="card"><h2>Step log <span class="sub">what the AI agent is doing, and why</span></h2>
       <div class="narr" id="narr">${lines||'<div class="ndet">Press play to begin.</div>'}</div></div>`;
 }
 
