@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AI Real Estate Agent — Kialae.AI</title>
-<meta name="description" content="One interview. Every form filled. An AI agent that prepares, validates and routes disclosure and transaction documents for buyers, sellers and brokers.">
+<meta name="description" content="One conversation. Every form filled. An AI agent that prepares, validates and routes disclosure and transaction documents for buyers, sellers and brokers.">
 <style>
   :root{
     --bg:#f6f7f9; --panel:#fff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
@@ -19,7 +19,7 @@
     -webkit-font-smoothing:antialiased}
   img{max-width:100%;display:block}
   a{color:inherit}
-  .wrap{max-width:1180px;margin:0 auto;padding:0 22px}
+  .wrap{max-width:1440px;margin:0 auto;padding:0 32px}
 
   /* nav — same dark bar as the app */
   header.top{position:sticky;top:0;z-index:10;background:var(--navy);color:#fff}
@@ -40,7 +40,7 @@
 
   /* hero */
   .hero{background:var(--navy);color:#fff;padding:72px 0 0;overflow:hidden}
-  .hero .grid{display:grid;grid-template-columns:1fr 1.1fr;gap:48px;align-items:end}
+  .hero .grid{display:grid;grid-template-columns:.9fr 1.3fr;gap:48px;align-items:end}
   .eyebrow{display:inline-block;font-size:12px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;
     color:#a5b4fc;background:rgba(99,102,241,.16);padding:5px 11px;border-radius:99px}
   .hero h1{font-size:clamp(38px,5.4vw,60px);line-height:1.05;letter-spacing:-.03em;margin:18px 0 18px;font-weight:750}
@@ -79,9 +79,10 @@
 
   /* how it works */
   #how{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-  .step{display:grid;grid-template-columns:.85fr 1.15fr;gap:56px;align-items:center;padding:40px 0}
+  .step{display:grid;grid-template-columns:.6fr 1.4fr;gap:48px;align-items:center;padding:48px 0}
   .step + .step{border-top:1px dashed var(--line)}
   .step:nth-of-type(even) .copy{order:2}
+  .step:nth-of-type(even){grid-template-columns:1.4fr .6fr}
   .num{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;font-weight:700;font-size:15px}
   .role{display:inline-block;margin-left:10px;font-size:12px;font-weight:650;background:var(--brand-soft);color:var(--brand);padding:3px 10px;border-radius:99px;vertical-align:middle}
   .step h3{font-size:24px;letter-spacing:-.02em;margin:14px 0 10px;line-height:1.25}
@@ -90,8 +91,16 @@
   .step li{position:relative;padding-left:26px;margin:8px 0;font-size:15px}
   .step li::before{content:"";position:absolute;left:0;top:5px;width:16px;height:16px;border-radius:50%;
     background:var(--ok-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.5 8.2l2.2 2.2 4.8-4.8' fill='none' stroke='%23059669' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/16px no-repeat}
-  .frame{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 18px 40px -18px rgba(15,23,42,.25)}
+  .frame{position:relative;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:10px;box-shadow:0 22px 50px -20px rgba(15,23,42,.3);cursor:zoom-in;transition:transform .2s,box-shadow .2s}
+  .frame:hover{transform:translateY(-3px);box-shadow:0 28px 60px -20px rgba(67,56,202,.35)}
   .frame img{border-radius:8px;border:1px solid var(--line);width:100%}
+  .frame::after{content:"Click to enlarge";position:absolute;right:20px;bottom:20px;background:rgba(15,23,42,.85);color:#fff;font-size:12px;font-weight:600;padding:5px 10px;border-radius:99px;opacity:0;transition:opacity .2s}
+  .frame:hover::after{opacity:1}
+  .shot{cursor:zoom-in}
+  .lightbox{position:fixed;inset:0;z-index:50;background:rgba(15,23,42,.88);display:none;align-items:center;justify-content:center;padding:24px;cursor:zoom-out}
+  .lightbox.on{display:flex}
+  .lightbox img{max-width:min(1600px,100%);max-height:100%;width:auto;height:auto;border-radius:10px;box-shadow:0 30px 80px rgba(0,0,0,.5);background:#fff}
+  .lightbox .x{position:absolute;top:16px;right:20px;background:#fff;color:var(--ink);border:0;width:38px;height:38px;border-radius:50%;font-size:22px;line-height:1;cursor:pointer}
 
   /* conversation */
   .chat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:12px}
@@ -145,6 +154,7 @@
     nav.links{display:none}
     .hero .grid,.step,.chat-grid{grid-template-columns:1fr;gap:32px}
     .step:nth-of-type(even) .copy{order:0}
+    .step:nth-of-type(even){grid-template-columns:1fr}
     .c3,.c4{grid-template-columns:1fr 1fr}
     .stats .wrap{grid-template-columns:1fr 1fr}
     .stat:nth-child(3){border-left:0}
@@ -188,7 +198,7 @@
   <div class="wrap grid">
     <div>
       <span class="eyebrow">AI Real Estate Agent</span>
-      <h1>One interview.<br><span>Every form filled.</span></h1>
+      <h1>One conversation.<br><span>Every form filled.</span></h1>
       <p class="lede">An AI agent that prepares, validates and routes disclosure and transaction documents for buyers, sellers and brokers. Weeks of paperwork become about two hours the broker runs alone.</p>
       <div class="ctas">
         <a class="btn" href="app.html">Open the app
@@ -252,7 +262,7 @@
     <div class="step">
       <div class="copy">
         <span class="num">2</span><span class="role">Agent</span>
-        <h3>The AI interviews, then fills every form</h3>
+        <h3>One conversation with the AI fills every form</h3>
         <p>The agent asks one question at a time. Each answer fills every form that needs it, and the agent shows its reasoning and confidence so you can verify or override.</p>
         <ul>
           <li>Questions sorted so the ones that unblock the most forms come first</li>
@@ -260,7 +270,7 @@
           <li>Every unfinished form names the question holding it up</li>
         </ul>
       </div>
-      <div class="frame"><img src="assets/agent.png" alt="Agent view with AI reasoning, confidence scores, the current interview question and forms still blocking" loading="lazy"></div>
+      <div class="frame"><img src="assets/agent.png" alt="Agent view with AI reasoning, confidence scores, the current conversation question and forms still blocking" loading="lazy"></div>
     </div>
 
     <div class="step">
@@ -352,7 +362,7 @@
   <div class="wrap">
     <div class="sec-head">
       <span class="kicker">Lowering the process time</span>
-      <h2>Where the days go, and what the agent does instead</h2>
+      <h2>Where the weeks go, and what the agent does instead</h2>
     </div>
     <div class="tbl">
       <table>
@@ -421,5 +431,18 @@
   </div>
 </footer>
 
+<div class="lightbox" id="lb" role="dialog" aria-modal="true" aria-label="Enlarged screenshot">
+  <button class="x" aria-label="Close">&times;</button>
+  <img alt="">
+</div>
+<script>
+  const lb=document.getElementById('lb'), lbImg=lb.querySelector('img');
+  document.querySelectorAll('.frame img, .shot img').forEach(img=>{
+    img.parentElement.addEventListener('click',()=>{lbImg.src=img.src;lbImg.alt=img.alt;lb.classList.add('on');document.body.style.overflow='hidden';});
+  });
+  const close=()=>{lb.classList.remove('on');document.body.style.overflow='';};
+  lb.addEventListener('click',close);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
+</script>
 </body>
 </html>

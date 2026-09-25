@@ -1002,7 +1002,7 @@ function agentView(){
 
   let card;
   if(!q){
-    card = `<div class="banner b-ok">✓ <div><b>Interview complete.</b> Every fact the package needs has been
+    card = `<div class="banner b-ok">✓ <div><b>Conversation complete.</b> Every fact the package needs has been
       collected. ${p.ready} of ${p.forms.length} forms are ready.</div></div>
       <button class="act" onclick="resetIntake()">Start over</button>`;
   } else {
@@ -1060,7 +1060,7 @@ function agentView(){
           }).join('')}
           ${notReady.length>10?`<p class="note">+${notReady.length-10} more</p>`:''}</div>`:''}
       </div>
-      <div class="card"><h2>Interview outline</h2>
+      <div class="card"><h2>Conversation outline</h2>
         <p class="lede">Sorted so the answers that unblock the most forms come first.</p>
         ${outline}</div>
     </div>`;
@@ -1144,7 +1144,7 @@ const CASES = [
           ['Owned solar needs no PPA disclosure', ()=>!requiredForms().includes('SOLAR')],
           ['1971 build adds lead disclosure', ()=>requiredForms().includes('LPD')]]},
 
- {id:'citychange', title:'Broker corrects the city mid-interview',
+ {id:'citychange', title:'Broker corrects the city mid-conversation',
   sub:'Entered as San José, corrected to Los Angeles after the fact',
   watch:'The second bug I shipped and fixed. Changing the city used to leave the old city’s forms in the '
        +'package and keep the wrong county printed on the statutory forms.',
