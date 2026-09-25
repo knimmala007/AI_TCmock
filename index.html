@@ -39,8 +39,9 @@
   .btn.ghost:hover{border-color:#94a3b8;background:#fff}
 
   /* hero */
-  .hero{background:var(--navy);color:#fff;padding:72px 0 0;overflow:hidden}
-  .hero .grid{display:grid;grid-template-columns:.9fr 1.3fr;gap:48px;align-items:end}
+  .hero{background:var(--navy);color:#fff;padding:56px 0 0;overflow:hidden}
+  .hero .grid{display:grid;grid-template-columns:.9fr 1.3fr;gap:48px;align-items:start}
+  .hero .grid > div:first-child{padding-top:14px}
   .eyebrow{display:inline-block;font-size:12px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;
     color:#a5b4fc;background:rgba(99,102,241,.16);padding:5px 11px;border-radius:99px}
   .hero h1{font-size:clamp(38px,5.4vw,60px);line-height:1.05;letter-spacing:-.03em;margin:18px 0 18px;font-weight:750}
@@ -427,7 +428,6 @@
 <footer>
   <div class="wrap">
     <span>© 2026 Kialae.AI · AI Real Estate Agent</span>
-    <span>Built by Moe Tarek, Ethan Yu and Karthikeya Nimmala</span>
   </div>
 </footer>
 
