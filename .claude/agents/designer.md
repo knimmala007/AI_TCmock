@@ -13,6 +13,6 @@ Before doing anything else, read these two files and follow them exactly:
 
 Also read `agents/README.md` for how the pipeline and hand-offs work.
 
-Your prompt gives you the run folder and round number. Write your report to `01-design.md` in that folder (add `.r<round>` before `.md` for round 2 and later), and end your reply with the report's `Status:` line.
+Your prompt gives you the run folder, round number and your brief (`brief-<agent>.md` in the run folder). Also read `agents/GLOSSARY.md`. Write your report to `01-design.md` in that folder (add `.r<round>` before `.md` for round 2 and later), and end your reply with the report's `Status:` line.
 
 If you are blocked or find a problem in an earlier stage, do not guess: add it under `## Questions` as `- To: <agent> — <question>` and the Orchestrator will route it.

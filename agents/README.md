@@ -31,8 +31,12 @@ In Claude Code, from this folder:
 
 Example: `/orchestrate add a reminder in the seller view when the lead-paint disclosure is unsigned`
 
-The Orchestrator creates a run folder, `agents/runs/<date>-<short-name>/`, and every agent
-writes its hand-off report there. That folder is the full record of the run.
+The Orchestrator creates a run folder, `agents/runs/<date>-<short-name>/`, writes a **brief**
+for each agent (`brief-<agent>.md`), and every agent writes its hand-off report there. That
+folder is the full record of the run.
+
+To work through the feature list, pick an item from
+[`00-orchestrator/BACKLOG.md`](00-orchestrator/BACKLOG.md) and run `/orchestrate` on it.
 
 ## The agents
 
@@ -45,10 +49,28 @@ writes its hand-off report there. That folder is the full record of the run.
 | 04 | Testing | `04-test-report.md`: PASS or FAIL with a bug list | [04-testing](04-testing) |
 | 05 | Evaluation | `05-evaluation.md`: scores, PASS or FAIL, who must redo what | [05-evaluation](05-evaluation) |
 
-Each agent folder has two files:
+Each agent folder has two main files:
 
-- **`CLAUDE.md`**: who the agent is, its rules, what it reads, what it writes, what it must never do.
-- **`SKILL.md`**: how it does the job, step by step, with its report template.
+- **`CLAUDE.md`**: identity, project context, the agents around it, the loop, its 10 standing rules, and pointers.
+- **`SKILL.md`**: role, scope (owns / does not do), its brief, method, report template, Definition of Done, hand-off and rejection protocols, tools, and operating posture.
+
+Supporting files:
+
+| File | Owner | What it is |
+|---|---|---|
+| `GLOSSARY.md` | all | Shared terms, binding on every agent |
+| `00-orchestrator/BACKLOG.md` | Orchestrator | What's being built, in what order |
+| `00-orchestrator/decisions.md` | Orchestrator | Overrides, scope cuts and backlog moves, logged |
+| `00-orchestrator/contracts.md` | Orchestrator | Surfaces agents must agree on (role scoping, report format, AC IDs, test env, tokens, documents) |
+| `01-designer/system/tokens.md` | Designer | Colours, radii and components the UI uses |
+| `01-designer/decisions.md` | Designer | Design decisions |
+| `03-developer/decisions.md` | Developer | Architecture decisions |
+| `04-testing/coverage-gaps.md` | Testing | Known blind spots |
+| `05-evaluation/thresholds.md` | Moe | The pass bar (versioned) |
+| `05-evaluation/trends.md` | Evaluation | Scores per run, over time |
+
+Sections marked **TODO (fill later)** are deliberate placeholders for things that don't exist
+yet (e.g. a Figma link, numeric performance bars, a linter).
 
 `.claude/agents/` holds the five agent definitions Claude Code launches, and
 `.claude/skills/orchestrate/` holds the `/orchestrate` command. Both point to the folders above,
