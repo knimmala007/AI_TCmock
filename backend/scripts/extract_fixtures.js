@@ -1,0 +1,141 @@
+// Derives backend/fixtures.js from the real data in ../../index.html and ../../rules.js.
+// Run from the repo root: node backend/scripts/extract_fixtures.js
+// Nothing here invents a document code: DOCS, UPLOADS and the Cottage Grove facts are
+// evaluated straight out of index.html; BASE_FORMS and QUESTIONS come from rules.js.
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import * as Rules from '../../rules.js';
+
+const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+
+function slice(startMarker, endMarker) {
+  const i = html.indexOf(startMarker);
+  if (i < 0) throw new Error('marker not found: ' + startMarker);
+  const j = html.indexOf(endMarker, i);
+  if (j < 0) throw new Error('end marker not found: ' + endMarker);
+  return html.slice(i, j);
+}
+
+// Stubs the sliced blocks reference but never call at definition time.
+const prelude = `
+const D = (v, src) => ({v, src});
+const ans = () => null, ansV = () => null;
+const pdfPath = c => c;
+`;
+function evalBlock(code, expr) {
+  return new Function(prelude + code + '\nreturn ' + expr + ';')();
+}
+
+const deal = evalBlock(slice('const DEAL = {', '/* The executed Cottage Grove'), 'DEAL');
+const docs = evalBlock(slice('const DOCS = [', '\n];') + '\n];', 'DOCS');
+// BASE_FORMS and QUESTIONS live in the shared rules.js (used by the browser and the agent).
+const baseForms = Rules.BASE_FORMS;
+const questions = Rules.createEngine({getAnswers: () => ({}), getDeal: () => ({data: {}}), getDocs: () => []}).QUESTIONS;
+const uploads = evalBlock(slice('const UPLOADS=[', '];') + '];', 'UPLOADS');
+const sellerStages = evalBlock(slice('const SELLER_STAGES', ';') + ';', 'SELLER_STAGES');
+const buyerStages = evalBlock(slice('const BUYER_STAGES', ';') + ';', 'BUYER_STAGES');
+const hasPdfExtra = evalBlock(
+  "const x = " + slice("['NHD-RPT'", ')')  .replace(/\)$/, '') + ';', 'x');
+const cases = evalBlock(slice('const CASES = [', '\n];') + '\n];', 'CASES');
+
+const hasPdf = new Set(docs.filter(d => d.file).map(d => d.code).concat(hasPdfExtra));
+
+// Static parts of each intake question. The adds/asks/derives rules live in rules.js
+// (shared with the browser), so they are not copied here.
+const fixtureQuestions = questions.map(q => {
+  const out = {};
+  Object.entries(q).forEach(([k, v]) => { if (typeof v !== 'function') out[k] = v; });
+  return out;
+});
+
+const fixtureDocs = docs.map(d => ({
+  code: d.code, name: d.name, form: d.form, src: d.src, side: d.side || 'seller',
+  fields: d.fields || [], has_pdf: hasPdf.has(d.code),
+}));
+
+// Cottage Grove: the real, closed transaction. Facts and sources are copied as-is.
+const cottage = {
+  transaction_id: deal.id,
+  synthetic: false,
+  address: deal.address, city: deal.city, county: deal.county, zip: deal.zip, apn: deal.apn,
+  type: deal.type, year_built: deal.yearBuilt, price: deal.price, seller: deal.seller,
+  listing_agent: deal.listingAgent, brokerage: deal.brokerage, close_date: deal.closeDate,
+  seller_stage: deal.sellerStage, buyer_stage: deal.buyerStage,
+  data: deal.data,
+  answers: {},
+  // The "Never received" logic in the app: UPLOADS entries still waiting (s === 'wait').
+  never_received: uploads.filter(u => u.s === 'wait').flatMap(u =>
+    (u.p || []).map(field => ({field, upload: u.n, note: u.note}))),
+};
+
+// Austin has no real data. Synthetic, built on the existing CASES answer shape
+// ("longford" is a complete single-family case); only the first answers are filled,
+// so the deal is mid-process. 'Other / unincorporated' is the real city option that
+// an untested city falls into.
+const shape = cases.find(c => c.id === 'longford').a;
+const austinAnswers = {};
+['sellerType', 'seller', 'address', 'propertyType'].forEach(k => {
+  austinAnswers[k] = {v: shape[k], src: 'SYNTHETIC'};
+});
+austinAnswers.address = {v: '42 Congress Ave', src: 'SYNTHETIC'};
+austinAnswers.city = {v: 'Other / unincorporated', src: 'SYNTHETIC'};
+const austin = {
+  transaction_id: 'tx_unknown_city',
+  synthetic: true,
+  address: '42 Congress Ave', city: 'Austin', county: 'Travis', zip: '', apn: '',
+  type: 'Resale', year_built: '', price: '', seller: shape.seller, listing_agent: '', brokerage: '',
+  close_date: '', seller_stage: 1, buyer_stage: 0,
+  data: {},
+  answers: austinAnswers,
+  never_received: [],
+};
+
+const out = {
+  _generated_by: 'backend/scripts/extract_fixtures.js from index.html. Do not edit by hand.',
+  seller_stages: sellerStages,
+  buyer_stages: buyerStages,
+  base_forms: baseForms,
+  docs: fixtureDocs,
+  questions: fixtureQuestions,
+  deals: {[cottage.transaction_id]: cottage, [austin.transaction_id]: austin},
+};
+
+// A plain ES module (export default), so it is bundled like any other import. The named
+// exports are generated here too, so importers never reshape it.
+const header = '// Generated by backend/scripts/extract_fixtures.js from index.html and rules.js. Do not edit by hand.\n';
+delete out._generated_by;
+const moduleSource = header + 'const fixtures = ' + JSON.stringify(out, null, 2) + `;
+
+export default fixtures;
+
+export const SEED_DEALS = fixtures.deals;
+export const DOCS = fixtures.docs;
+export const QUESTIONS = fixtures.questions;
+export const BASE_FORMS = fixtures.base_forms;
+export const SELLER_STAGES = fixtures.seller_stages;
+export const BUYER_STAGES = fixtures.buyer_stages;
+`;
+fs.writeFileSync(path.join(root, 'backend', 'fixtures.js'), moduleSource);
+
+// Reconciliation report: where does each form code appear?
+const docCodes = new Set(docs.map(d => d.code));
+const referenced = new Set(baseForms);
+questions.forEach(q => {
+  (q.fills || []).forEach(c => referenced.add(c));
+  if (typeof q.adds === 'function') {
+    // call adds with every option plus a few probes to collect the codes it can return
+    const probes = (q.options || []).concat(['x', '1947', '1990']);
+    probes.forEach(p => { try { (q.adds(p) || []).forEach(c => referenced.add(c)); } catch (e) {} });
+  }
+});
+const report = {
+  docs_total: docs.length,
+  with_executed_pdf: [...hasPdf].filter(c => docCodes.has(c)).length,
+  docs_without_pdf: docs.filter(d => !hasPdf.has(d.code)).map(d => d.code),
+  in_rules_not_in_docs: [...referenced].filter(c => !docCodes.has(c)).sort(),
+  in_docs_not_referenced_by_rules: [...docCodes].filter(c => !referenced.has(c)).sort(),
+  never_received: cottage.never_received.map(n => n.field),
+};
+console.log(JSON.stringify(report, null, 2));
