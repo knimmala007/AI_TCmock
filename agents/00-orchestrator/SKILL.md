@@ -63,7 +63,7 @@ brief missing a required field is not a brief; the agent will rightly reject it.
 ```
 Feature: <name>
 User goal: <one sentence: what the broker / seller / buyer is trying to get done>
-Roles affected: <Broker / Seller / Buyer / AI Agent>
+Roles affected: <Broker / Seller / Buyer / Lender; the legacy AI Agent only where Kialae code still has it>
 Constraints: <role boundaries, branch, mobile, anything binding>
 Acceptance (product level): <bulleted; what "done" looks like to the user>
 Priority: <P0 / P1 / P2>          Deadline: <date or "none">

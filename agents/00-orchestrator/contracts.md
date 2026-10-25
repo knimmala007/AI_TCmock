@@ -15,7 +15,10 @@ through the Orchestrator first, and is logged in `decisions.md`.
   - `broker`: seller, buyer and broker views;
   - `seller`: seller view;
   - `buyer`: buyer view;
-  - `aiagent`: seller, buyer and broker views.
+  - `lender`: lender view (the loan file only: the appraisal, `APPR`);
+  - `aiagent`: seller, buyer and broker views. **Legacy, being retired** (the Kialae code still has it). Nothing new may use it.
+
+  The chat assistant never uses a separate role: it runs with the signed-in person's role. The audit trail page is broker-only.
 - `scopeFor(role, state)` builds the only payload a role receives.
 - Every endpoint is wrapped in `withUser` (`api/_lib/auth.js`); every action re-checks permission (`api/_lib/actions.js`).
 

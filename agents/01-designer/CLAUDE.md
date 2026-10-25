@@ -33,7 +33,8 @@ estate disclosure and transaction documents, with a document agent in a chat pan
 | Seller | Seller view only |
 | Buyer | Buyer view only |
 | Broker | Seller, buyer and broker views |
-| AI Agent | Everything, plus the audit trail and team invites |
+| Lender | Loan file only (the appraisal) |
+| AI Agent (legacy, being retired) | Everything, plus the audit trail and team invites. Do not design for it; the chat assistant never uses a separate role. The audit trail page is broker-only. |
 
 **Surfaces:**
 - **Landing page** (`index.html`, `Kialae` branch).

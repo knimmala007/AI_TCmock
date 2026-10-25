@@ -47,7 +47,8 @@ document agent in a chat panel.
 | Broker | Seller, buyer and broker |
 | Seller | Seller only |
 | Buyer | Buyer only |
-| AI Agent | Seller, buyer and broker, plus the audit trail |
+| Lender | Loan file only (the appraisal) |
+| AI Agent (legacy, being retired) | Seller, buyer and broker, plus the audit trail. Specs must not give new behaviour to it; the audit trail page is broker-only. |
 
 **Branches:** `Kialae` has the server and roles. `masters-project-moe` is a single static
 page with no server, so specs for it are UI-only.

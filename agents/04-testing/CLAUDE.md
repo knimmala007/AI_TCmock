@@ -22,7 +22,7 @@ estate disclosure and transaction documents for brokers, sellers and buyers, wit
 document agent in a chat panel.
 
 **Users and roles:** Broker (seller, buyer and broker views), Seller (seller view), Buyer
-(buyer view), AI Agent (everything plus the audit trail). Not signed in = nothing.
+(buyer view), Lender (loan file only). The legacy AI Agent role (everything plus the audit trail) is being retired and the Kialae code still has it; the chat assistant never uses it, and the audit trail page is broker-only. Not signed in = nothing (the real app; the chat demo has its own no-sign-in demo session).
 
 **How to test (Kialae):**
 - `npm test`: Node test runner with `DEV_FAKE_AUTH=1` and in-memory storage (`tests/*.test.js`).

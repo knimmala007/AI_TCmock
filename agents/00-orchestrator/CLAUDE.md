@@ -30,7 +30,7 @@ routes real estate disclosure and transaction documents for brokers, sellers and
 with a document agent in a chat panel. The test transaction is a real closed deal
 (118 Cottage Grove Ave, San José) with redacted documents.
 
-**Users and roles:** Broker, Seller, Buyer, AI Agent (full access). Each role sees only its
+**Users and roles:** Broker, Seller, Buyer, Lender. The Kialae code still has a legacy full-access "AI Agent" role, which is being retired; nothing new may use it. The chat assistant never uses a separate role: it acts with the signed-in person's role, and the audit trail page is broker-only. Each role sees only its
 slice of the deal, in the UI, the API and the chat. This is the product's most important rule.
 
 **Platform:** static HTML/JS front end and Node functions on Vercel (`api/`), Clerk sign-in

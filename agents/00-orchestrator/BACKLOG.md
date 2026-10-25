@@ -17,11 +17,11 @@ _(none yet. Pick the first item from **Next** and run `/orchestrate` on it.)_
 | Item | Priority | Notes |
 |---|---|---|
 | **E-signature** (built in, or via DocuSign) | P0 | Partly exists: in-app sign confirmation per document (`signDocument` in `api/_lib/actions.js`). Decide: build out in-app signing, or integrate DocuSign. |
-| **Audit trail**: who did what, and when | P0 | Partly exists: `audit()` in `api/_lib/store.js`, shown to the AI Agent role in Team & activity. Gaps: TODO (fill later) |
+| **Audit trail**: who did what, and when | P0 | Partly exists: `audit()` in `api/_lib/store.js`, shown to the legacy AI Agent role (being retired) in Team & activity; the target is broker-only. Gaps: TODO (fill later) |
 | **Document upload and storage per deal** | P0 | Partly exists: chat uploads up to 1 MB stored in Redis. Needs real file storage per deal. TODO (fill later): storage choice |
-| **Notifications** (email and in-app) for status changes and signatures | P0 | In-app requests exist for broker / AI Agent. Email: none yet. |
+| **Notifications** (email and in-app) for status changes and signatures | P0 | In-app requests exist for broker / the legacy AI Agent role. Email: none yet. |
 | **Deadline and contingency reminders** | P0 | Deadlines exist (`DEADLINES` in `api/_lib/data.js`); no reminders; no contingency dates on file. |
-| **Broker approval before anything is sent** | P0 | Partly exists: only Broker / AI Agent can send for signature, with confirmation. |
+| **Broker approval before anything is sent** | P0 | Partly exists: only Broker / the legacy AI Agent role (being retired) can send for signature, with confirmation. |
 | **Messaging between broker, seller and buyer, scoped by role** | P0 | Not started. Must respect role scoping (seller ↔ buyer never see each other's private data). |
 
 ## Next: Should have

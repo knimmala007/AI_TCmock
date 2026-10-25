@@ -124,7 +124,7 @@ The spec is ready only when **all** of these are true:
 
 - [ ] Every behaviour in the approved design maps to at least one AC.
 - [ ] Every AC is yes / no testable and numbered.
-- [ ] The Role access table covers Broker, Seller, Buyer and AI Agent.
+- [ ] The Role access table covers Broker, Seller, Buyer and Lender (the legacy AI Agent role only where the Kialae code still has it).
 - [ ] Each "Cannot" in the table has an AC checked at the API level, not only the UI.
 - [ ] Data / API changes name the `scope.js` rule involved, or say "none".
 - [ ] Audit lists every new action, or says "none".
