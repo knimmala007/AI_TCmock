@@ -1,0 +1,12 @@
+{
+  "name": "ai-trans",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node backend/scripts/serve.js",
+    "test": "node --test"
+  }
+}
