@@ -233,7 +233,16 @@
 <main id="app"></main>
 <div id="modal"></div>
 
-<script>
+<script type="module">
+/* rules.js is a plain ES module shared with the Node agent. The app code below is classic
+   (global functions, inline handlers), so it is injected only once Rules is ready. */
+import * as Rules from './rules.js';
+window.Rules = Rules;
+const app = document.createElement('script');
+app.textContent = document.getElementById('app-src').textContent;
+document.body.appendChild(app);
+</script>
+<script id="app-src" type="text/plain">
 /* ==========================================================================
    REAL DATA — extracted from the executed disclosure package in Drive for
    118 Cottage Grove Avenue, San Jose, CA 95110. Seller: Seller Corp.
@@ -412,11 +421,7 @@ const HAS_PDF = new Set(DOCS.filter(d=>d.file).map(d=>d.code)
 
 /* Any form the interview requires but that has no record gets a placeholder so the
    user can still see it, rather than it silently vanishing from the package. */
-function docByCode(code){
-  return DOCS.find(d=>d.code===code) || {
-    code, name:code+' — form not yet templated', form:'No template in this build',
-    src:'Required by the rules engine', side:'seller', render:'advisory', fields:[]};
-}
+function docByCode(code){ return Rules.docByCode(DOCS, code); }
 
 const FIELDS = {
   seller:'Seller of record', address:'Property address', apn:'Assessor Parcel Number', county:'County',
@@ -435,12 +440,6 @@ const FIELDS = {
 };
 
 const fieldVal = k => DEAL.data[k];
-function missingFields(){
-  const s=new Set();
-  (typeof activeDocs==='function' ? activeDocs() : DOCS)
-    .forEach(d=>(d.fields||[]).forEach(f=>{ if(!fieldVal(f)) s.add(f); }));
-  return [...s];
-}
 function docState(d){
   if(!DEAL.tcRun) return {status:'not_started',pct:0,gaps:[]};
   const gaps=(d.fields||[]).filter(f=>!fieldVal(f));
@@ -461,7 +460,7 @@ const VIEWERS = {
 };
 function canAccess(v,d){
   const side=d.side||'seller';
-  if(v.role==='broker') return side==='seller'||side==='shared';
+  if(v.role==='broker') return side==='seller'||side==='buyer'||side==='shared';
   if(v.role==='seller') return side==='seller'||side==='shared';
   if(v.role==='buyer')  return side==='buyer' ||side==='shared';
   return false;
@@ -470,7 +469,7 @@ const visibleDocs = v => activeDocs().filter(d=>canAccess(v,d));
 
 let view='agent', openRef=null;
 const $ = s=>document.querySelector(s);
-const fmtD = d=> d? new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+const fmtD = Rules.fmtD;
 
 /* ==========================================================================
    FORM RENDERERS — each returns genuinely different markup, modelled on the
@@ -759,238 +758,32 @@ booklet: d => `<div class="car-hd"><div class="org">Statutory Booklet — Delive
    Every answer propagates to every form that consumes it, and some answers
    change which forms are required at all.
    ========================================================================== */
-const BASE_FORMS = ['TDS','SPQ','NHD','AVID','WHSD','WCMD','SBSA','DIA','SA','MCA','FHDA','CCPA',
-                    'WFA','SFLS','PSD','SPT','BCA','ABA','EQ','RLA','BK-ENV','BK-NRG','BK-EQ','BK-SIG','BK-MOLD'];
+
 
 const INTAKE = { answers:{}, log:[], done:false };
 const ans = k => INTAKE.answers[k];
 const ansV = k => ans(k) ? ans(k).v : null;
 
-/* Each entry is asked AT MOST ONCE and feeds every form listed in `fills`. */
-const QUESTIONS = [
- // ---------- parties & property
- {k:'sellerType', g:'Parties & Property', q:'How is the seller taking title?', type:'choice',
-  options:['Individual(s)','Corporation or LLC','Trust','Estate'],
-  why:'Decides whether representative-capacity and FIRPTA substitute forms are required at all.',
-  fills:['TDS','SPQ','RLA'],
-  adds:v=> (v==='Corporation or LLC'||v==='Trust'||v==='Estate') ? ['RCSD-S','QS','AS'] : ['AS']},
- {k:'seller', g:'Parties & Property', q:'Full legal name of the seller, exactly as it will appear on the deed.',
-  type:'text', ph:'e.g. Seller Corp.',
-  why:'Appears on every seller-signed form in the package.',
-  fills:['TDS','SPQ','NHD','LPD','WHSD','SJ-TREE','DIA','SA','BCA','RCSD-S','AS','QS','RLA']},
- {k:'signer', g:'Parties & Property', q:'Who signs on behalf of the entity, and in what capacity?',
-  type:'text', ph:'e.g. Authorized Officer, President',
-  why:'Required on the representative-capacity disclosure.',
-  asks:()=> ['Corporation or LLC','Trust','Estate'].includes(ansV('sellerType')),
-  fills:['RCSD-S','QS']},
- {k:'address', g:'Parties & Property', q:'Property street address.', type:'text',
-  ph:'e.g. 118 Cottage Grove Avenue',
-  why:'Appears on every form in the package.',
-  fills:['TDS','SPQ','NHD','AVID','LPD','WHSD','WCMD','SJ-TREE','SFLS','PSD','EQ','RLA','PTR','PROP']},
- {k:'city', g:'Parties & Property', q:'Which city is the property in?', type:'choice',
-  options:['San José','San Francisco','Los Angeles','Berkeley','Oakland','Other / unincorporated'],
-  why:'This is the single answer that decides the local-ordinance forms. Getting it wrong is how packages fail.',
-  fills:['TDS','AVID','NHD'],
-  derives:v=>({county:{'San José':'Santa Clara','San Francisco':'San Francisco','Los Angeles':'Los Angeles',
-                       'Berkeley':'Alameda','Oakland':'Alameda'}[v]||null}),
-  adds:v=> v==='San José'?['SJ-TREE','SMSCA'] : v==='San Francisco'?['SF-3R','SF-EWC']
-        : v==='Los Angeles'?['LA-9A','LA-RETRO','LA-GAS'] : v==='Berkeley'?['BK-RECO','BK-SEWER']
-        : v==='Oakland'?['OK-RECO','EBMUD'] : []},
- {k:'county', g:'Parties & Property', q:'County?', type:'text',
-  why:'Statutory forms name the county.', fills:['TDS','NHD','AVID'],
-  asks:()=> !ansV('county')},
- {k:'apn', g:'Parties & Property', q:'Assessor Parcel Number.', type:'text', ph:'e.g. 434-24-002',
-  why:'Keys the title report, the hazard report and the county records.',
-  fills:['NHD','SJ-TREE','PTR','PROP','LA-9A','SF-3R']},
- {k:'yearBuilt', g:'Parties & Property', q:'Year the dwelling was built.', type:'text', ph:'e.g. 1947',
-  why:'Anything before 1978 triggers the federal lead-paint disclosure and booklet. If the year cannot be '
-     + 'established, the disclosure is required anyway — the safe default is to assume pre-1978, never to skip it.',
-  fills:['TDS','SPQ'],
-  // Unparseable or unknown year => assume pre-1978 and require the disclosure.
-  adds:v=>{ const y=parseInt(v,10); return (!Number.isFinite(y) || y<1978) ? ['LPD','BK-LEAD'] : []; }},
- {k:'propertyType', g:'Parties & Property', q:'Property type?', type:'choice',
-  options:['Single-family resale','Condominium','Townhome','New construction'],
-  why:'Common-interest developments pull in the full HOA document set.',
-  fills:['TDS','RLA'],
-  adds:v=> (v==='Condominium'||v==='Townhome')?['HOA','HOA-CERT'] : v==='New construction'?['NEWCON'] : []},
- {k:'pool', g:'Parties & Property', q:'Is there a swimming pool or spa on the property?', type:'choice',
-  options:['No','Yes — pool only','Yes — spa only','Yes — pool and spa'],
-  why:'SB 442 amended Health & Safety Code §115922: when a property with a pool or spa transfers, the home '
-     + 'inspection must identify which of the seven drowning-prevention safety features are present and state '
-     + 'explicitly if fewer than two are. Missing this is a liability event, not a paperwork slip.',
-  fills:['TDS','SPQ'],
-  adds:v=> v.startsWith('Yes') ? ['POOL'] : []},
- {k:'solar', g:'Parties & Property', q:'Is there a solar system, and is it owned or leased?', type:'choice',
-  options:['No solar','Owned outright','Leased or PPA'],
-  why:'A leased or PPA system does not convey free and clear — the buyer must assume the agreement subject to '
-     + 'the provider’s credit approval, and that has to be disclosed.',
-  fills:['TDS'],
-  adds:v=> v==='Leased or PPA' ? ['SOLAR'] : []},
-
- // ---------- occupancy
- {k:'occupancy', g:'Occupancy', q:'How is the property occupied right now?', type:'choice',
-  options:['Owner-occupied, vacant at close','Owner-occupied, seller remains after close','Tenant-occupied','Vacant'],
-  why:'Tenant occupancy pulls in lease delivery and any local rent-ordinance notice.',
-  fills:['TDS','SPQ','LA-9A'],
-  adds:v=> v!=='Tenant-occupied' ? [] :
-    (ansV('city')==='Los Angeles'?['LA-RSO']: ansV('city')==='Berkeley'?['BK-RENT']:
-     ansV('city')==='San Francisco'?['SF-RENT']: ansV('city')==='Oakland'?['OK-RAP']:['LEASE'])},
- {k:'leaseEnd', g:'Occupancy', q:'When does the current lease end?', type:'text', ph:'e.g. 04/30/2027',
-  why:'The buyer takes title subject to the lease. Must be disclosed.',
-  asks:()=> ansV('occupancy')==='Tenant-occupied', fills:['SPQ','LEASE']},
-
- // ---------- seller knowledge
- {k:'defects', g:"Seller's Knowledge", q:'Any known material defects or malfunctions? Describe, or say none.',
-  type:'text', ph:'e.g. None known',
-  why:'This is the question that gets sellers sued when answered carelessly. Be specific.',
-  fills:['TDS','SPQ','AVID']},
- {k:'repairs', g:"Seller's Knowledge", q:'Repairs, alterations or additions in the last 5 years?',
-  type:'text', ph:'e.g. Water heater replaced 2024',
-  why:'Feeds both the TDS condition section and SPQ section A.',
-  fills:['TDS','SPQ']},
- {k:'permits', g:"Seller's Knowledge", q:'Were permits obtained and finaled for that work?', type:'choice',
-  options:['Yes, all finaled','Some work was unpermitted','Seller does not know'],
-  why:'SPQ questions 2 and 3 both depend on this. Left blank, the package ships incomplete.',
-  asks:()=> ansV('repairs') && !/^none/i.test(ansV('repairs')), fills:['SPQ']},
- {k:'claims', g:"Seller's Knowledge", q:'Any insurance claims on the property in the last 5 years?',
-  type:'text', ph:'e.g. None in past 5 years', why:'SPQ section on claims history.', fills:['SPQ']},
-
- // ---------- systems
- {k:'waterHeater', g:'Systems Compliance', q:'Is the water heater braced, anchored or strapped?', type:'choice',
-  options:['Yes, compliant','No, needs correction before close'],
-  why:'Health & Safety Code §19211 requires a written seller certification.', fills:['WHSD','TDS']},
- {k:'smokeAlarm', g:'Systems Compliance', q:'Operable smoke alarm in every sleeping room?', type:'choice',
-  options:['Yes, compliant','No, needs correction before close'],
-  why:'Health & Safety Code §13113.8 requires a written seller certification.', fills:['WHSD','TDS']},
- {k:'coDetector', g:'Systems Compliance', q:'Carbon monoxide detectors installed and operable?', type:'choice',
-  options:['Yes, compliant','No, needs correction before close'],
-  why:'Required on the combined water-conserving fixtures / CO detector notice.', fills:['WCMD','TDS']},
-
- // ---------- hazards (a single upload answers all of these)
- {k:'hazards', g:'Natural Hazards', q:'Natural hazard zones — flood, fire, fault, seismic, Mello-Roos.',
-  type:'doc', docLabel:'Natural Hazard Disclosure report (JCP-LGS, Disclosure Source, etc.)',
-  why:'Six separate statutory answers. Nobody should be typing these — the third-party report supplies all six at once.',
-  fills:['NHD','TDS','EQ'],
-  supplies:['Flood zone','Dam inundation','Fire severity zone','Wildland risk','Fault zone','Seismic zone']},
-
- // ---------- local, conditional on city
- {k:'treeStatus', g:'Local Ordinance', q:'San José street trees — does the property comply with SJMC §13.28.195?',
-  type:'choice', options:['Fully complies','Missing required trees','Trees present but not maintained','Seller is unaware'],
-  why:'San José requires this disclosure at least 7 business days before transfer.',
-  asks:()=> ansV('city')==='San José', fills:['SJ-TREE']},
- {k:'permitHistory', g:'Local Ordinance', q:'Building permit history of record.', type:'doc',
-  docLabel:'City permit record / 3R / 9A report',
-  why:'The city record, not the seller’s memory. Feeds SPQ and the city property report.',
-  fills:['SPQ','TDS','SF-3R','LA-9A'], supplies:['Permit history','Zoning designation']},
- {k:'hoaName', g:'Local Ordinance', q:'HOA name and monthly assessment.', type:'text',
-  ph:'e.g. Ashby Commons OA — $485/mo',
-  why:'Civil Code §4525 requires the full association document set.',
-  asks:()=> ['Condominium','Townhome'].includes(ansV('propertyType')), fills:['HOA','HOA-CERT']},
-
- // ---------- transaction
- {k:'listingAgent', g:'Transaction', q:'Listing agent name and DRE number.', type:'text',
-  ph:'e.g. Agent name, DRE #01234567',
-  why:'Signs the agent visual inspection disclosure and the broker acknowledgements.',
-  fills:['AVID','ABA','RLA','BCA']},
- {k:'escrow', g:'Transaction', q:'Escrow and title company.', type:'text',
-  ph:'e.g. Fidelity National Title', why:'Named on the escrow and closing documents.',
-  fills:['EMD','QS','CLOSE','PTR']},
-];
-
-/* ---- engine ---- */
-function requiredForms(){
-  const set = new Set(BASE_FORMS);
-  QUESTIONS.forEach(q=>{ const a=ans(q.k); if(a && q.adds) q.adds(a.v).forEach(c=>set.add(c)); });
-  return [...set];
-}
-function askable(q){ return q.asks ? !!q.asks() : true; }
-function pending(){ return QUESTIONS.filter(q=> !ans(q.k) && askable(q)); }
-function nextQ(){ return pending()[0] || null; }
-
-/* A form is ready when every askable question that feeds it has been answered. */
-function formFields(code){ return QUESTIONS.filter(q=>(q.fills||[]).includes(code) && askable(q)); }
-function formReady(code){ const f=formFields(code); return f.length===0 || f.every(q=>ans(q.k)); }
-function intakeProgress(){
-  const forms = requiredForms();
-  const ready = forms.filter(formReady).length;
-  // Progress is measured only against forms that actually carry data. Fixed-text
-  // advisories and booklets are "ready" the moment they are attached, so counting
-  // them would show ~40% before a single question is answered.
-  const dataForms = forms.filter(c=>formFields(c).length>0);
-  const dataReady = dataForms.filter(formReady).length;
-  const qs = QUESTIONS.filter(askable);
-  const answered = qs.filter(q=>ans(q.k)).length;
-  return {forms, ready, dataForms, dataReady, answered, total:qs.length,
-          pct: dataForms.length ? Math.round(dataReady/dataForms.length*100) : 0};
-}
+/* ---- engine: shared with Node via rules.js ---- */
+const ENGINE = Rules.createEngine({getAnswers:()=>INTAKE.answers, getDeal:()=>DEAL, getDocs:()=>DOCS});
+const {QUESTIONS, BASE_FORMS, requiredForms, askable, pending, nextQ, formFields, formReady, intakeProgress,
+       applyIntakeToDeal, activeDocs, missingFields} = ENGINE;
 
 /* --------------------------------------------------------------------------
    The interview is not a separate toy. Every answer is written straight through
    to the transaction file that the Broker, Seller, Buyer, Files and document
    views read from, so the package fills as the questions get answered.
    -------------------------------------------------------------------------- */
-const INTAKE_TO_DEAL = {
-  seller:'seller', address:'address', county:'county', apn:'apn', repairs:'repairs',
-  listingAgent:'listingAgent', permitHistory:'permitHistory', defects:'condition',
-  occupancy:'tenancyStatus', waterHeater:'waterHeater', smokeAlarm:'smokeAlarm',
-  treeStatus:'treeStatus', escrow:'escrowCo', claims:'insuranceClaims', pool:'pool', solar:'solar',
-};
-function applyIntakeToDeal(){
-  if(!Object.keys(INTAKE.answers).length) return;
-  Object.entries(INTAKE_TO_DEAL).forEach(([ik,dk])=>{
-    const a = ans(ik); if(a) DEAL.data[dk] = {v:a.v, src:a.src};
-  });
-  // one uploaded hazard report resolves all six statutory answers
-  if(ans('hazards')){
-    const s = ans('hazards').src==='Uploaded document' ? 'NHD vendor report' : ans('hazards').v;
-    [['floodZone','No'],['damFlood','Yes'],['fireZone','No'],['wildland','No'],
-     ['faultZone','No'],['seismicZone','Yes — Liquefaction Zone']]
-      .forEach(([k,v])=>{ DEAL.data[k] = {v, src:s}; });
-  }
-  // top-level property identity drives every header in the app
-  if(ansV('address'))  DEAL.address = ansV('address');
-  if(ansV('city'))     DEAL.city    = ansV('city');
-  if(ansV('county'))   DEAL.county  = ansV('county');
-  if(ansV('apn'))      DEAL.apn     = ansV('apn');
-  if(ansV('seller'))   DEAL.seller  = ansV('seller');
-  if(ansV('listingAgent')) DEAL.listingAgent = ansV('listingAgent');
-  if(ansV('yearBuilt') && parseInt(ansV('yearBuilt'),10)) DEAL.yearBuilt = parseInt(ansV('yearBuilt'),10);
-  if(ansV('propertyType')) DEAL.type = ansV('propertyType');
-  // no question asks for form dates: they carry the date this package was prepared
-  const today = new Date().toISOString().slice(0,10);
-  ['tdsDate','lpdDate','nhdDate','glideDate','treeDate'].forEach(k=>{ if(!DEAL[k]) DEAL[k] = today; });
-  if(!fieldVal('lpdDate')) DEAL.data.lpdDate = {v:fmtD(today), src:'Date package prepared'};
-  DEAL.tcRun = true;
-}
 
-/* The live package = whatever the rules engine currently requires. */
-function activeDocs(){
-  return Object.keys(INTAKE.answers).length
-    ? requiredForms().map(docByCode)
-    : DOCS;
-}
 
 window.answerQ = function(k, forced){
   const q = QUESTIONS.find(x=>x.k===k); if(!q) return;
   let v = forced;
   if(v===undefined){ const el=$('#in-'+k); v = el ? el.value.trim() : ''; }
   if(!v) return;
-  const before = requiredForms();
-  INTAKE.answers[k] = {v, src: q.type==='doc' ? 'Uploaded document' : 'Broker intake'};
-  // An answer can auto-populate other fields without asking. These must be RECOMPUTED
-  // on re-answer, or a deal moved from San José to Los Angeles keeps Santa Clara County
-  // printed on its statutory forms. Values the user typed are never clobbered — only
-  // previously derived ones.
-  if(q.derives) Object.entries(q.derives(v)).forEach(([dk,dv])=>{
-    const cur = ans(dk), wasDerived = cur && /^Derived/.test(cur.src);
-    if(dv && (!cur || wasDerived)) INTAKE.answers[dk] = {v:dv, src:'Derived from '+q.g.toLowerCase()};
-    else if(!dv && wasDerived){ delete INTAKE.answers[dk]; delete DEAL.data[dk]; }
-  });
-  const added = requiredForms().filter(c=>!before.includes(c));
-  const filled = (q.fills||[]).filter(c=>requiredForms().includes(c));
-  INTAKE.log.push({k, q:q.q, v, filled, added, skippedNow:
-    QUESTIONS.filter(x=>!ans(x.k) && !askable(x) && x.g===q.g).map(x=>x.k)});
-  applyIntakeToDeal();
+  const r = ENGINE.answer(k, v);
+  if(!r) return;
+  INTAKE.log.push({k, q:q.q, v, filled:r.filled, added:r.added, skippedNow:r.skippedNow});
   if(!nextQ()) INTAKE.done = true;
   render();
 };
@@ -1105,8 +898,10 @@ const CASES = [
      permits:'Yes, all finaled', claims:'None in past 5 years', waterHeater:'Yes, compliant',
      smokeAlarm:'Yes, compliant', coDetector:'Yes, compliant', hazards:'Received — 6 values extracted',
      treeStatus:'Fully complies', permitHistory:'Received',
-     listingAgent:'Listing Agent, DRE #01425060', escrow:'Old Republic Title'},
-  expect:[['Lead disclosure required (built 1964)', ()=>requiredForms().includes('LPD')],
+     listingAgent:'Listing Agent, DRE #01425060', escrow:'Old Republic Title',
+     buyerFinancing:'Yes, with a lender loan'},
+  expect:[['Appraisal added for a financed purchase', ()=>requiredForms().includes('APPR')],
+          ['Lead disclosure required (built 1964)', ()=>requiredForms().includes('LPD')],
           ['Lead booklet attached', ()=>requiredForms().includes('BK-LEAD')],
           ['SB 442 pool safety item added', ()=>requiredForms().includes('POOL')],
           ['San José street tree form added', ()=>requiredForms().includes('SJ-TREE')],
@@ -1126,8 +921,10 @@ const CASES = [
      claims:'One water-damage claim, 2018', waterHeater:'Yes, compliant', smokeAlarm:'Yes, compliant',
      coDetector:'Yes, compliant', hazards:'Received — 6 values extracted', permitHistory:'Received',
      hoaName:'Guerrero Commons OA — $520/mo', listingAgent:'Listing Agent, DRE #02114887',
-     escrow:'Old Republic Title'},
-  expect:[['San Francisco 3R report required', ()=>requiredForms().includes('SF-3R')],
+     escrow:'Old Republic Title',
+     buyerFinancing:'No, all cash'},
+  expect:[['No appraisal for an all-cash purchase', ()=>!requiredForms().includes('APPR')],
+          ['San Francisco 3R report required', ()=>requiredForms().includes('SF-3R')],
           ['SF energy/water compliance required', ()=>requiredForms().includes('SF-EWC')],
           ['Tenant occupancy adds SF rent ordinance', ()=>requiredForms().includes('SF-RENT')],
           ['Entity seller adds rep-capacity form', ()=>requiredForms().includes('RCSD-S')],
@@ -1145,8 +942,10 @@ const CASES = [
      pool:'No', solar:'No solar', occupancy:'Vacant', defects:'None known', repairs:'None',
      claims:'None', waterHeater:'Yes, compliant', smokeAlarm:'Yes, compliant',
      coDetector:'Yes, compliant', hazards:'Received — 6 values extracted', treeStatus:'Seller is unaware',
-     permitHistory:'Received', listingAgent:'Listing Agent', escrow:'Chicago Title'},
-  expect:[['Unknown year still requires lead disclosure', ()=>requiredForms().includes('LPD')],
+     permitHistory:'Received', listingAgent:'Listing Agent', escrow:'Chicago Title',
+     buyerFinancing:'No, all cash'},
+  expect:[['No appraisal for an all-cash purchase', ()=>!requiredForms().includes('APPR')],
+          ['Unknown year still requires lead disclosure', ()=>requiredForms().includes('LPD')],
           ['Lead booklet still attached', ()=>requiredForms().includes('BK-LEAD')],
           ['Package still completes', ()=>intakeProgress().pct===100]]},
 
@@ -1160,8 +959,10 @@ const CASES = [
      permits:'Yes, all finaled', claims:'None in past 5 years', waterHeater:'Yes, compliant',
      smokeAlarm:'Yes, compliant', coDetector:'Yes, compliant', hazards:'Received — 6 values extracted',
      permitHistory:'Received', hoaName:'Sunset Terrace HOA — $610/mo',
-     listingAgent:'Listing Agent', escrow:'Lawyers Title'},
-  expect:[['LA 9A property report required', ()=>requiredForms().includes('LA-9A')],
+     listingAgent:'Listing Agent', escrow:'Lawyers Title',
+     buyerFinancing:'Yes, with a lender loan'},
+  expect:[['Appraisal added for a financed purchase', ()=>requiredForms().includes('APPR')],
+          ['LA 9A property report required', ()=>requiredForms().includes('LA-9A')],
           ['LA seismic gas valve certificate required', ()=>requiredForms().includes('LA-GAS')],
           ['LA retrofit compliance required', ()=>requiredForms().includes('LA-RETRO')],
           ['Tenant occupancy adds rent stabilization', ()=>requiredForms().includes('LA-RSO')],
@@ -1177,9 +978,11 @@ const CASES = [
      solar:'No solar', occupancy:'Vacant', defects:'None', repairs:'None', claims:'None',
      waterHeater:'Yes, compliant', smokeAlarm:'Yes, compliant', coDetector:'Yes, compliant',
      hazards:'Received — 6 values extracted', treeStatus:'Fully complies', permitHistory:'Received',
-     listingAgent:'Listing Agent', escrow:'Chicago Title'},
+     listingAgent:'Listing Agent', escrow:'Chicago Title',
+     buyerFinancing:'No, all cash'},
   epilogue:[['city','Los Angeles']],
-  expect:[['Old San José forms removed', ()=>!requiredForms().includes('SJ-TREE')],
+  expect:[['No appraisal for an all-cash purchase', ()=>!requiredForms().includes('APPR')],
+          ['Old San José forms removed', ()=>!requiredForms().includes('SJ-TREE')],
           ['Santa Clara advisory removed', ()=>!requiredForms().includes('SMSCA')],
           ['New Los Angeles forms added', ()=>requiredForms().includes('LA-9A')],
           ['County re-derived to Los Angeles', ()=>DEAL.county==='Los Angeles']]},
@@ -1411,7 +1214,7 @@ function renderRoles(){
   $('#roles').innerHTML = Object.entries(VIEWERS).map(([k,v])=>
     `<button class="${k===view?'on':''}" onclick="setView('${k}')">${v.label}</button>`).join('');
 }
-window.setView = v=>{view=v;render();};
+window.setView = v=>{view=v;syncDemoRole();render();};
 
 function progressBar(stages,idx){
   return `<div class="track">${stages.map((s,i)=>{
@@ -1444,6 +1247,30 @@ function docTable(v){
       checkbox schedule (TDS), a hazard matrix (NHD), a city form (SJ-TREE) and a booklet to compare.</p>`;
 }
 
+/* Demo mode, no sign-in (a stand-in, reminders.md R6). The role switcher asks the server to start a
+   session for the viewer's role; the server validates it and sets an HttpOnly cookie. The agent reads
+   the role only from that cookie. Exactly four roles exist (broker, seller, buyer, lender); views with
+   another role (the audit and evaluation tabs) do not start a session. The app has no Lender view yet. */
+const DEMO_ROLES = ['broker','seller','buyer','lender'];
+let demoRole = null;
+async function syncDemoRole(){
+  const role = VIEWERS[view].role;
+  if(!DEMO_ROLES.includes(role)) return false;
+  if(role===demoRole) return true;
+  try{
+    const r = await fetch('/api/demo-session',{method:'POST',headers:{'content-type':'application/json'},
+      credentials:'same-origin',body:JSON.stringify({role})});
+    if(r.ok) demoRole = role;
+    return r.ok;
+  }catch(e){ return false; }
+}
+/* Broker only. The button is a convenience; /api/events re-checks the session cookie's role and
+   refuses anyone else. */
+window.openAuditLog = async ()=>{
+  const win = window.open('about:blank','_blank');
+  if(await syncDemoRole()) win.location = '/api/events';
+  else { if(win) win.close(); alert('Audit log unavailable: could not start a session here.'); }
+};
 function brokerView(v){
   const gaps=missingFields();
   return `<div class="card">
@@ -1452,7 +1279,8 @@ function brokerView(v){
           <div class="addr">${DEAL.tcRun ? `${esc(DEAL.city)}, ${esc(DEAL.county)} County ${esc(DEAL.zip)} · APN ${esc(DEAL.apn)} · ${esc(DEAL.type)} ·
             built ${DEAL.yearBuilt}` : 'Answer the intake questions to fill in the forms.'}</div></div>
         <div style="text-align:right"><span class="pill p-brand">${esc(DEAL.listingAgent || 'Listing agent')}${DEAL.brokerage ? ' · '+esc(DEAL.brokerage) : ''}</span>
-          <div class="addr" style="margin-top:5px">${DEAL.id} · ${DEAL.closeDate ? 'closed '+fmtD(DEAL.closeDate) : 'not started'}</div></div>
+          <div class="addr" style="margin-top:5px">${DEAL.id} · ${DEAL.closeDate ? 'closed '+fmtD(DEAL.closeDate) : 'not started'}</div>
+          ${v.role==='broker' ? '<button class="ghost" style="margin-top:8px" onclick="openAuditLog()">Audit log</button>' : ''}</div>
       </div>
       ${progressBar(SELLER_STAGES,DEAL.sellerStage)}
       <div class="metrics">
