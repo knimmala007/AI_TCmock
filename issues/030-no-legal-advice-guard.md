@@ -1,5 +1,5 @@
 # 030: No-legal-advice guard
-Status: todo | Depends on: 027d | Owner: agent | Size: M
+Status: review pending | Depends on: 027d | Owner: agent | Size: M
 
 ## What solving this does
 
@@ -31,3 +31,7 @@ handler: scripted model returning advice-like replies; adversarial prompts.
 ## Notes
 
 Best effort, not a guarantee.
+- Built in `backend/agent_handler.js`, not `backend/agent_loop.js` as the Files line says: the guard runs on the reply after the loop, so the loop is untouched. The guard itself is `backend/legal_guard.js` (`guardReply`, `legalRefusal`).
+- A refusal response gains an additive field: `{reply, turnId, status: "LEGAL_JUDGMENT"}`. Ordinary replies are unchanged.
+- The refusal points to a person in words only: "Please ask your broker." for seller, buyer and lender (they have `ask_broker`), a licensed attorney or tax advisor for the broker. The guard does not call a tool.
+- The guard firing is not logged. Logging it belongs to ticket 062.

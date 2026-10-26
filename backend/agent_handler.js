@@ -6,12 +6,13 @@
 // outside the four, so an unknown role is a 401 like a missing cookie.
 //
 // Order: method -> model configured -> rate limit -> session -> message -> load thread
-//        -> the tool-use loop (agent_loop.js, every model call through modelGate) -> save thread -> {reply, turnId}.
+//        -> the tool-use loop (agent_loop.js, every model call through modelGate) -> legal-advice guard (legal_guard.js) -> save thread -> {reply, turnId}.
 // A stopped turn (rate limit, daily cap, call limit, tool-call limit, repeat stop) saves nothing to the thread.
 import crypto from 'node:crypto';
 import { CHAT_PER_MINUTE } from './config.js';
 import { clientKey } from './demo_session.js';
 import { redact } from './events.js';
+import { guardReply } from './legal_guard.js';
 import { runLoop } from './agent_loop.js';
 import { createModelGate, createTurn } from './model_gate.js';
 import { promptFor } from './prompts.js';
@@ -60,9 +61,12 @@ export function createAgentHandler({
     if (r.stopped === 'daily_cap') return json(429, { reply: r.reply, turnId });
     if (r.stopped) return json(200, { reply: r.reply, turnId });
 
-    const reply = redact(r.reply);
+    // The legal-advice guard (030): on the session role's reply only, after the loop. A refusal replaces the
+    // reply, so the advice is never saved to the thread or returned.
+    const guarded = guardReply({ role, reply: r.reply });
+    const reply = redact(guarded.reply);
     await threads.append(scope, { role: 'user', content: message });
     await threads.append(scope, { role: 'assistant', content: reply });
-    return json(200, { reply, turnId });
+    return json(200, guarded.status ? { reply, turnId, status: guarded.status } : { reply, turnId });
   };
 }
