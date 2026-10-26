@@ -127,6 +127,7 @@ backend/
   repository.js       <- the only reader/writer of deal data (ADR 0003), storage injected
   threads.js          <- last 20 chat messages and the seen-field-names set, per deal+session+role, with expiry
   limits.js           <- per-client rate limit and the global daily model-call cap
+  model_gate.js       <- modelGate: a gate every model call passes through (daily cap, 8-call limit, logging)
   safety.js           <- scrubs keys, emails, phones, SSN-like numbers from deal data
   runtime.js          <- picks storage: Upstash when hosted, local otherwise
   roles.js            <- role -> tools -> data filter (Lender sees only APPR)
