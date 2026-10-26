@@ -6,14 +6,14 @@
 // outside the four, so an unknown role is a 401 like a missing cookie.
 //
 // Order: method -> model configured -> rate limit -> session -> message -> load thread
-//        -> one modelGate call -> save thread -> {reply, turnId}.
-// A stopped turn (rate limit, daily cap, call limit) saves nothing to the thread.
+//        -> the tool-use loop (agent_loop.js, every model call through modelGate) -> save thread -> {reply, turnId}.
+// A stopped turn (rate limit, daily cap, call limit, tool-call limit, repeat stop) saves nothing to the thread.
 import crypto from 'node:crypto';
 import { CHAT_PER_MINUTE } from './config.js';
 import { clientKey } from './demo_session.js';
 import { redact } from './events.js';
+import { runLoop } from './agent_loop.js';
 import { createModelGate, createTurn } from './model_gate.js';
-import { replyText } from './model_interface.js';
 
 // Placeholder; ticket 027d replaces it with the per-role prompts.
 export const SYSTEM_PROMPT = 'You are a helpful assistant for a real estate transaction. Answer briefly and plainly.';
@@ -26,7 +26,7 @@ const json = (status, body, extra = {}) => new Response(JSON.stringify(body), {
 
 export function createAgentHandler({
   callModel, getSession, limiter, dailyCap, eventLog, threads,
-  perMinute = CHAT_PER_MINUTE, newTurnId = () => crypto.randomUUID(),
+  perMinute = CHAT_PER_MINUTE, newTurnId = () => crypto.randomUUID(), registry,
 }) {
   const modelGate = callModel ? createModelGate({ callModel, dailyCap, eventLog }) : null;
 
@@ -51,13 +51,13 @@ export function createAgentHandler({
     const scope = { dealId, sessionId, role };
     const history = await threads.recent(scope);
     const turn = createTurn({ sessionId, turnId, role, dealId });
-    const r = await modelGate(turn, {
-      system: SYSTEM_PROMPT, tools: [], messages: [...history, { role: 'user', content: message }],
+    const r = await runLoop(modelGate, turn, {
+      system: SYSTEM_PROMPT, messages: [...history, { role: 'user', content: message }], registry,
     });
     if (r.stopped === 'daily_cap') return json(429, { reply: r.reply, turnId });
     if (r.stopped) return json(200, { reply: r.reply, turnId });
 
-    const reply = redact(replyText(r.result));
+    const reply = redact(r.reply);
     await threads.append(scope, { role: 'user', content: message });
     await threads.append(scope, { role: 'assistant', content: reply });
     return json(200, { reply, turnId });

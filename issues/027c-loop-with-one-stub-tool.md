@@ -1,5 +1,5 @@
 # 027c: Loop with one stub tool
-Status: todo | Depends on: 027a | Owner: agent | Size: M
+Status: review pending | Depends on: 027a | Owner: agent | Size: M
 
 ## What solving this does
 
