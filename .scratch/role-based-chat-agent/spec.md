@@ -99,10 +99,11 @@ It is built from scratch with a hand-written loop (no agent framework, not a mes
 - Recent turns are held in Upstash Redis on the server, keyed by deal, session and role, holding the last 20 messages with a one-day expiry (both are configuration constants). The set of field names the model has seen is keyed the same way. The role is part of the key, so one role's thread can never be read by another, a role switch (which starts a new session) begins empty, and a role outside the four is refused.
 
 **Tools**
-- Broker: get deal, save answers, ask next question, flag missing, request approval, hand off.
-- Seller: get deal status, explain form, ask next question, save answers, ask broker.
-- Buyer: get deal status, explain form, acknowledge disclosure, ask broker.
-- Lender: get deal status, explain form, mark clear to close, ask broker.
+- Broker: `get_deal`, `save_answers`, `ask_next_question`, `flag_missing`, `request_approval`, `hand_off`.
+- Seller: `get_deal_status`, `explain_form`, `ask_next_question`, `save_answers`, `ask_broker`.
+- Buyer: `get_deal_status`, `explain_form`, `acknowledge_disclosure`, `ask_broker`.
+- Lender: `get_deal_status`, `explain_form`, `mark_clear_to_close`, `ask_broker`.
+- Every tool returns one envelope, `{ok, data?, error?: {code, message, next_step}, field_names?}`; `save_answers` returns a per-fact array in `data`; the next question is chosen in code by unblock count (ADR 0008).
 - What each role may see: the broker sees every document, both sides of the deal; the seller sees seller-side and shared documents; the buyer sees buyer-side and shared documents; the lender sees only the loan file (today, the appraisal). The same rule is used by the app's page and by the agent's role registry.
 - The shared rules require the appraisal when the buyer is financing. The intake asks "Is the buyer financing the purchase with a lender loan?"; "Yes, with a lender loan" adds the appraisal and "No, all cash" adds nothing. This is what gives the Lender a form to see.
 - There is one save tool, named save answers, for every role that saves. It saves and validates in one call (it absorbs fill form and check state/county rules), accepts up to 15 facts, and runs the jurisdiction check and field-name guard inside.
@@ -135,6 +136,8 @@ It is built from scratch with a hand-written loop (no agent framework, not a mes
 | approval required | The action itself is gated (hand off, release) and approval hasn't been given. Applies to actions, never to writes to a form. | Ask the broker to approve. |
 
 - A write is checked in the order role, required, approved snapshot, lock (confirmed). A role therefore learns nothing about a form it may not touch.
+- Attestation (ADR 0010): only the seller session may save `waterHeater`, `smokeAlarm` and `coDetector`; every other role gets `HUMAN_ATTESTATION_REQUIRED`; `ask_next_question` skips them for non-sellers; signature blocks are never filled by the assistant. In demo mode anyone can pick the seller role, so this is not a real attestation until real sign-in.
+- Hand-off (ADR 0011): the next role sees only the forms released to it and a note of who handed off and when, and no chat history. Each hand-off is recorded on the deal as `{from, to, forms, at, approval}`. Release (access) and hand-off (assignment) stay separate; for a buyer or lender recipient, the hand-off's forms must already be released.
 - Approval-gated actions: handing the package to another role (hand off); releasing forms to a buyer or lender; freezing the final snapshot; sending a message to a seller, buyer or lender; waiving a required form or overriding a refusal; any change after approval (reopening a locked form).
 - Only hand off is a tool, and it refuses until the broker has approved. The other five have no tool, so the assistant cannot perform them. They are broker buttons in the UI (release forms, freeze snapshot, send message, waive a form or override a refusal, reopen a form). Each button calls a server endpoint that re-checks the signed session is the broker, records the approval for that action and writes the audit log. Request approval only asks; the click grants.
 - Approval is granted per action and only by the broker's Approve click, never by a tool the model can call.
@@ -146,7 +149,7 @@ It is built from scratch with a hand-written loop (no agent framework, not a mes
 
 **Data and platform**
 - One shared fixture file, a generated JavaScript module that is imported like any other (so it is bundled), serves both the agent and the evals. It is generated from the app and the rules module and never hand-edited. The real deal is the Cottage Grove transaction: 44 real form codes, 42 with an executed PDF, with permit history and tenancy status never received. The Austin deal is explicitly synthetic and exercises the untested path.
-- `get deal` returns one of the six real seller stages: Listing Signed, Disclosures, Offer Accepted, Inspection, Escrow, Closed.
+- `get_deal` returns the stage for the caller's side (ADR 0009): the broker sees both; the seller sees one of the six real seller stages (Listing Signed, Disclosures, Offer Accepted, Inspection, Escrow, Closed); the buyer sees one of the seven buyer stages; the lender sees nothing until the buyer stage "Loan & Appraisal", then follows the buyer's stage to Closed, only when the buyer is financing. The appraisal's visibility follows role scope and the buyer financing, not the stage.
 - On the hosted platform, deals, events and chat threads use Upstash, reached over its REST API with no added dependency. The runtime refuses to start there without it. Setup of Upstash, Vercel and Clerk is done by the owner. No agent changes those settings or reads secrets, and none edits the hosting configuration, so documents are not served the way the other branch's document endpoint does.
 - A small static server on Node's built-in modules, started with one package script, serves the app for local use from an allowlist (never the rest of the repo) and mounts the API functions.
 - Until the repo has real sign-in, the role comes from the demo session (see Identity). It works on the hosted platform. It must be replaced by real sign-in before anything beyond a redacted demo is served.
@@ -201,8 +204,8 @@ Prior art: the existing tests for the role registry, fixtures, repository, event
 ## Further Notes
 
 Open items, tracked in the reminders file:
-- Full signatures for every tool.
-- The shapes of approval and lock state. The guards currently read the approved snapshot's form list, each form's lock reason and the per-action approvals; to be settled before the tools are built.
+- Full signatures for every tool: the envelope and five tools are decided (ADR 0008); the rest are still open (ticket 024).
+- Decided (ADR 0007, reminders Q-c): approval and lock state carry who and when at the same paths: `approval.snapshot = {forms, approved_by, approved_at}`, `locks[FORM] = {reason, set_by, set_at}`, `approvals[action] = {granted_by, granted_at, consumed?}`. `reopen_form` needs no prior grant: the broker's Reopen click is the approval.
 - The shape of the existing audit log and how this repo reaches it.
 - How the session carries the role once real sign-in exists.
 - The loan checklist's document code for the Lender (today only the appraisal exists, so the Lender sees only that).

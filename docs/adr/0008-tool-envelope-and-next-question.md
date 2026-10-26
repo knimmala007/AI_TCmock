@@ -19,4 +19,5 @@ One envelope gives the loop one failure path and one place for redaction, loggin
 ## Consequences
 - The new `rules.js` function needs a test in `backend/tests/rules.test.js`. Ticket 033 lists `rules.js` only as a reference, so its Files line must change before it is built.
 - ADR 0002's `config.py` should read `config.js`, and the spec and CONTEXT should use `get_deal` (the code spelling).
+- `NOT_FOUND` (no deal file for the session) is an envelope tool error, not one of the ten status codes. It is provisional until the owner decides (`backend/tools.js`).
 - A small adapter turns `guardWrite`'s `{error, message, next_step}` into the envelope.

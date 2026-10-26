@@ -1,6 +1,6 @@
 # Issues: role-based chat agent
 
-66 tickets: 20 done, 40 to do, 5 blocked, 1 closed (032). Source of requirements: `.scratch/role-based-chat-agent/spec.md`, `.claude/CONTEXT.MD`, ADRs 0001 to 0006, `backend/reminders.md`. Words follow `GLOSSARY.md`.
+66 tickets: 27 done, 33 to do, 5 blocked, 1 closed (032). Source of requirements: `.scratch/role-based-chat-agent/spec.md`, `.claude/CONTEXT.MD`, ADRs 0001 to 0006, `backend/reminders.md`. Words follow `GLOSSARY.md`.
 
 | # | Title | Status | Depends on | Owner |
 |---|-------|--------|------------|-------|
@@ -26,19 +26,19 @@
 | 020 | [Add a health-check function](020-health-check-function.md) | done | 013 | agent |
 | 021 | [Deploy the health check to a Vercel preview](021-deploy-health-check-to-vercel-preview.md) | todo | 019, 020 | human |
 | 022 | [Extractor lists city-dependent codes; refresh the form-code notes](022-extractor-city-codes-and-context-refresh.md) | done | 002, 003 | agent |
-| 023 | [Design the approval and lock state shapes](023-design-approval-and-lock-state-shapes.md) | todo | 018 | human |
+| 023 | [Design the approval and lock state shapes](023-design-approval-and-lock-state-shapes.md) | done | 018 | human |
 | 024 | [Decide the tool signatures](024-decide-tool-signatures.md) | todo | 018 | human |
-| 025 | [Decide stages and attestation fields](025-decide-stages-and-attestation-fields.md) | todo | 018 | human |
+| 025 | [Decide stages and attestation fields](025-decide-stages-and-attestation-fields.md) | done | 018 | human |
 | 026 | [Find the platform audit log's shape](026-find-audit-log-shape.md) | todo | 018 | human |
-| 027 | [Chat endpoint gives a plain reply (umbrella for 027a to 027d)](027-chat-endpoint-plain-reply.md) | todo (027a done; 027b, 027c and 027d review pending) | 008, 009, 011, 012 | agent |
-| 027b | [Real model client](027b-real-model-client.md) | review pending | 027a | agent |
-| 027c | [Loop with one stub tool](027c-loop-with-one-stub-tool.md) | review pending | 027a | agent |
-| 027d | [Four per-role system prompts](027d-per-role-system-prompts.md) | review pending | 027c | human |
+| 027 | [Chat endpoint gives a plain reply (umbrella for 027a to 027d)](027a-chat-endpoint-plain-reply.md) | done (027a to 027d) | 008, 009, 011, 012 | agent |
+| 027b | [Real model client](027b-real-model-client.md) | done | 027a | agent |
+| 027c | [Loop with one stub tool](027c-loop-with-one-stub-tool.md) | done | 027a | agent |
+| 027d | [Four per-role system prompts](027d-per-role-system-prompts.md) | done | 027c | human |
 | 028 | [Owner sets environment variables](028-owner-sets-environment-variables.md) | todo | 021, 027b | human |
 | 028a | [One manual real model run](028a-one-manual-real-model-run.md) | todo | 027b, 027c, 028 | human |
 | 029 | [Chat panel in the app](029-chat-panel-in-the-app.md) | todo (029a done: panel; history read open) | 027a | agent |
 | 030 | [No-legal-advice code guard](030-no-legal-advice-guard.md) | todo | 027c | agent |
-| 031 | [Broker can ask the assistant about the deal (`get_deal`)](031-get-deal-scoped-to-role.md) | todo | 024, 025, 027c | agent |
+| 031 | [Broker can ask the assistant about the deal (`get_deal`)](031-get-deal-scoped-to-role.md) | done | 024, 025, 027c | agent |
 | 032 | [Tool-call limits and repeat stop](032-tool-call-limits-and-repeat-stop.md) | closed by 027c; logging moves to 062 | 027c | agent |
 | 033 | [`ask_next_question` picks the question in code](033-ask-next-question-by-unblock-count.md) | todo | 024, 031 | agent |
 | 034 | [`save_answers` saves a fact](034-save-answers-saves-a-fact.md) | todo | 033 | agent |

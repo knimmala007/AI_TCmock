@@ -1,5 +1,5 @@
 # 027d: Four per-role system prompts
-Status: review pending | Depends on: 027c | Owner: human | Size: S
+Status: done | Depends on: 027c | Owner: human | Size: S
 
 ## What solving this does
 

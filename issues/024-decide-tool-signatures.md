@@ -32,3 +32,7 @@ None (decision).
 ## Notes
 
 Blocks 031 and 040.
+
+## Left to do (Oct 26)
+
+Stale text applied: the spec and CONTEXT use `get_deal`; ADR 0002 says `config.js` and its dates are fixed; the envelope, `save_answers`, `ask_broker`, `explain_form`, `request_approval` and the next-question rule are decided (ADR 0008). Not done, so the ticket stays `todo` (acceptance criteria 1, 3, 5): inputs, outputs and errors for `get_deal_status`, `flag_missing`, `acknowledge_disclosure`, `mark_clear_to_close` and `hand_off`, and how forms with no template are reported in each tool. The owner decides these.

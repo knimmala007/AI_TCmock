@@ -1,5 +1,5 @@
 # 023: Design the approval and lock state shapes
-Status: todo | Depends on: 018 | Owner: human | Size: M
+Status: done | Depends on: 018 | Owner: human | Size: M
 
 ## What solving this does
 

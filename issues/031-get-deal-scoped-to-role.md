@@ -1,5 +1,5 @@
 # 031: Broker can ask the assistant about the deal (`get_deal`)
-Status: review pending | Depends on: 024, 025, 027c | Owner: agent | Size: M
+Status: done | Depends on: 024, 025, 027c | Owner: agent | Size: M
 
 ## What solving this does
 

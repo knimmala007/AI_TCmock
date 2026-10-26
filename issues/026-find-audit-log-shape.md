@@ -29,3 +29,7 @@ None (information).
 ## Notes
 
 Unblocks 059.
+
+## Left to do (Oct 26)
+
+Nothing in this ticket is stale text. It stays `todo` until the owner answers the seven questions in ADR 0012 (the platform `audit()` shape and access route).

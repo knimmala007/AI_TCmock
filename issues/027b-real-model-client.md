@@ -1,5 +1,5 @@
 # 027b: Real model client
-Status: review pending | Depends on: 027a | Owner: agent | Size: M
+Status: done | Depends on: 027a | Owner: agent | Size: M
 
 ## What solving this does
 

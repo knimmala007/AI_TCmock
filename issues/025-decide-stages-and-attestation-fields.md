@@ -1,5 +1,5 @@
 # 025: Decide stages and attestation fields
-Status: todo | Depends on: 018 | Owner: human | Size: S
+Status: done | Depends on: 018 | Owner: human | Size: S
 
 ## What solving this does
 

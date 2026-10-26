@@ -1,5 +1,5 @@
 # 027: Chat endpoint gives a plain reply (umbrella for 027a to 027d)
-Status: todo (027a done; 027b to 027d remain) | Depends on: 008, 009, 011, 012 | Owner: agent (027d: human) | Size: M
+Status: done (027a to 027d all done) | Depends on: 008, 009, 011, 012 | Owner: agent (027d: human) | Size: M
 
 ## What solving this does
 
@@ -17,9 +17,9 @@ Out: Real tools (031 onward); the chat panel (029); the legal-advice guard (030)
 | Part | What | Ticket | Status |
 |---|---|---|---|
 | 027a | `POST /api/agent`, `modelGate`, scripted fake model, `backend/model_interface.js` | recorded here; no separate file | done |
-| 027b | Real model client over `fetch` | [027b](027b-real-model-client.md) | todo |
-| 027c | Hand-written loop with one stub tool | [027c](027c-loop-with-one-stub-tool.md) | todo |
-| 027d | Four per-role system prompts | [027d](027d-per-role-system-prompts.md) | todo |
+| 027b | Real model client over `fetch` | [027b](027b-real-model-client.md) | done |
+| 027c | Hand-written loop with one stub tool | [027c](027c-loop-with-one-stub-tool.md) | done |
+| 027d | Four per-role system prompts | [027d](027d-per-role-system-prompts.md) | done |
 
 ## Acceptance criteria
 

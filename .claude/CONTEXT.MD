@@ -70,6 +70,10 @@ mode" below.
 - **It needs an owner-set `AGENT_SESSION_SECRET` on Vercel** and refuses to run
   without it: a built-in default would let anyone forge a broker cookie. Agents
   cannot set Vercel settings, so this is the owner's step.
+- **Attestation limit.** Anyone can pick the seller role in the switcher, so the
+  seller-only rule for `waterHeater`, `smokeAlarm` and `coDetector` (ADR 0010) is only
+  as strong as the switcher: it stops the other roles' assistants, but it cannot prove a
+  real seller said it. It becomes real with real sign-in (reminders R6).
 - **No leaks through the agent.** Role filtering stays fully server-side. The chat
   history and the seen-field-names set are keyed by session **and** role, and every
   role switch starts a new session, so a switch begins with a clean thread (even
@@ -130,7 +134,7 @@ backend/
   model_gate.js       <- modelGate: a gate every model call passes through (daily cap, 8-call limit, logging)
   safety.js           <- scrubs keys, emails, phones, SSN-like numbers from deal data
   runtime.js          <- picks storage: Upstash when hosted, local otherwise
-  roles.js            <- role -> tools -> data filter (Lender sees only APPR)
+  roles.js            <- role -> tools -> data filter (Lender sees only APPR, and only when the buyer is financing)
   session.js          <- the demo session cookie (role from the cookie only); needs an owner secret on Vercel
   demo_session.js     <- the role switcher's endpoint: validates the role, starts a fresh session
   events.js           <- agent_events log + logEvent (ADR 0004), storage injected
@@ -246,7 +250,19 @@ marked `guardWrite` / `guardAction`.
 **Check order for a write (confirmed):** role, then required, then approved
 snapshot, then lock. A role therefore learns nothing about a form it may not touch.
 Per-action grants live in `deal.approvals`, set only by the broker's Approve click,
-never by a model-callable tool.
+never by a model-callable tool. They carry who and when (ADR 0007): `{granted_by,
+granted_at, consumed?}`.
+
+### Attestation and hand-off (decided)
+
+- **Attestation (ADR 0010).** Only the seller session may save `waterHeater`,
+  `smokeAlarm` and `coDetector`; every other role gets `HUMAN_ATTESTATION_REQUIRED`.
+  `ask_next_question` skips them for non-sellers. Signature blocks are never filled by
+  the assistant. The list is a constant in `backend/tools.js`, not a `rules.js` change.
+- **Hand-off (ADR 0011).** The next role sees only the forms released to it and a note
+  of who handed off and when, with no chat history. Each hand-off is recorded on the
+  deal as `{from, to, forms, at, approval}`. Release (access) and hand-off (assignment)
+  stay separate; for a buyer or lender recipient the forms must already be released.
 
 ### Actions that need broker approval (decided)
 
@@ -388,8 +404,8 @@ cost against the Oct 22 deadline).
 ## Still open — do not silently assume an answer
 
 Decided since the last revision: tool list (above), limits (above), citation
-(not required), wave pattern (dropped for now), `get_deal` returns the six real
-product stages, "no legal advice" is two layers (prompt rule + code guard, best
+(not required), wave pattern (dropped for now), `get_deal` returns the stage for
+the caller's side (ADR 0009), "no legal advice" is two layers (prompt rule + code guard, best
 effort), logging via `agent_events`.
 
 Decided: runtime is Node (option a). The agent loop and tools are ES modules, and
@@ -397,16 +413,20 @@ Decided: runtime is Node (option a). The agent loop and tools are ES modules, an
 (the owner does the setup); the platform's existing audit log is the intended sink
 for events, but its shape is not known in this repo.
 
-1. Full function signatures for every tool in the registry.
-2. `deal.approval.snapshot` (`{forms: [...]}`) and `deal.locks` (`{FORM: {reason}}`)
-   are the shapes `status.js` reads. Confirm them against how the UI will record
-   approvals and locks.
+1. Full function signatures for every tool in the registry. Partly decided: the
+   envelope, `save_answers`, `ask_broker`, `explain_form`, `request_approval` and the
+   next-question rule are in ADR 0008; the other tools' inputs and outputs are still
+   open (ticket 024).
+2. Decided (ADR 0007, reminders Q-c): approvals, locks and the snapshot carry who and
+   when at the paths `status.js` reads. `status.js` `guardAction` still has to change
+   (reminders R16).
 3. The shape of the existing audit log, and how this repo reaches it. Until
    known, events are written to Upstash lists keyed by turn.
 4. Real sign-in. Until it exists, the demo session is the stand-in (see "Demo
    mode"). Replace it before anything beyond a redacted demo is served.
 5. The Lender's loan checklist has no document code. Only the appraisal (`APPR`)
-   exists, so the Lender sees only `APPR` for now.
+   exists, so the Lender sees only `APPR` for now, and only when the buyer is
+   financing. The stage only drives the status line (ADR 0009).
 6. The Kialae `api/_lib/scope.js` (`ROLE_VIEWS`) still has the legacy `aiagent`
    role and no `lender`. The agent docs under `agents/` were fixed (commit
    c980d6d); the code is on another branch. See `backend/reminders.md` R13.
