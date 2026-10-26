@@ -8,6 +8,7 @@ import { createEventLog, memoryEventStore } from '../events.js';
 import { createThreadStore } from '../threads.js';
 import { cookieName, sessionFromRequest, signSession } from '../session.js';
 import { createAgentHandler, SYSTEM_PROMPT } from '../agent_handler.js';
+import { STUB_TOOL } from '../agent_loop.js';
 import { createAgentEndpoint } from '../../api/agent.js';
 import { THREAD_MESSAGES_KEPT } from '../config.js';
 
@@ -55,7 +56,7 @@ const post = (cookie, body = { message: 'hi' }, { url = 'http://x/api/agent', he
   headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}), ...headers },
 });
 
-test('a message gets a plain reply as {reply, turnId}, with the placeholder prompt and no tools', async () => {
+test('a message gets a plain reply as {reply, turnId}, with the placeholder prompt and the stub tool', async () => {
   const { handler, requests } = setup({ replies: [ok('Hello there.')] });
   const res = await handler(post(cookieFor('broker')));
   assert.strictEqual(res.status, 200);
@@ -65,7 +66,7 @@ test('a message gets a plain reply as {reply, turnId}, with the placeholder prom
   assert.ok(body.turnId);
   assert.strictEqual(requests.length, 1);
   assert.strictEqual(requests[0].system, SYSTEM_PROMPT);
-  assert.deepStrictEqual(requests[0].tools, []);
+  assert.deepStrictEqual(requests[0].tools, [STUB_TOOL]);
   assert.deepStrictEqual(requests[0].messages, [{ role: 'user', content: 'hi' }]);
 });
 
