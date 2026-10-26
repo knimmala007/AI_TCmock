@@ -1,10 +1,16 @@
 // POST /api/agent {message}: the chat endpoint. Wiring only; the logic is backend/agent_handler.js.
-// No model client is wired until ticket 027b, so every POST answers 503 MODEL_NOT_CONFIGURED.
+// The model client is built from ANTHROPIC_API_KEY; with no key every POST answers 503 MODEL_NOT_CONFIGURED.
+// An injected callModel (tests) takes precedence.
 import { createRuntime } from '../backend/runtime.js';
 import { createAgentHandler } from '../backend/agent_handler.js';
 import { sessionFromRequest } from '../backend/session.js';
+import { redact } from '../backend/events.js';
+import { modelClientFromEnv, ModelCallError, MODEL_FAILED_REPLY } from '../backend/model_client.js';
 
-export function createAgentEndpoint(env = process.env, { callModel } = {}) {
+const failure = (status, error, message) => new Response(JSON.stringify({ error, message }),
+  { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
+
+export function createAgentEndpoint(env = process.env, { callModel = modelClientFromEnv(env) } = {}) {
   let handler;
   return req => {
     try {
@@ -18,7 +24,13 @@ export function createAgentEndpoint(env = process.env, { callModel } = {}) {
     } catch {
       return new Response(JSON.stringify({ error: 'DEMO_NOT_CONFIGURED' }), { status: 503, headers: { 'content-type': 'application/json' } });
     }
-    return handler(req);
+    // A failed model call is a plain 502. Any other error is a generic 500, not shown as a model problem.
+    // Neither shows a stack, an upstream body or a header; the 500 is logged by name and message only.
+    return Promise.resolve(handler(req)).catch(e => {
+      if (e instanceof ModelCallError) return failure(502, 'MODEL_FAILED', MODEL_FAILED_REPLY);
+      console.error('agent endpoint error:', redact(String(e && e.name)), redact(String(e && e.message)));
+      return failure(500, 'INTERNAL_ERROR', 'Something went wrong. Please try again.');
+    });
   };
 }
 

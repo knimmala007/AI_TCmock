@@ -28,7 +28,7 @@ shared rules / handler: every role has a prompt; each prompt names only its own 
 
 ## Sources
 
-`.scratch/role-based-chat-agent/spec.md` Behaviors and Guardrails; ADR 0002; `backend/reminders.md` R16; ticket 027.
+`.scratch/role-based-chat-agent/spec.md` Behaviors and Guardrails; ADR 0002; `backend/reminders.md` R21; ticket 027.
 
 ## Notes
 

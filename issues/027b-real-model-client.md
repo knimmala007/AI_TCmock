@@ -1,5 +1,5 @@
 # 027b: Real model client
-Status: todo | Depends on: 027a | Owner: agent | Size: M
+Status: review pending | Depends on: 027a | Owner: agent | Size: M
 
 ## What solving this does
 
@@ -27,7 +27,7 @@ handler and client: a fake `fetch` only. Cases: a successful reply, an HTTP erro
 
 ## Sources
 
-`backend/model_interface.js`; `backend/reminders.md` R16; ticket 027; `.scratch/role-based-chat-agent/spec.md` Architecture.
+`backend/model_interface.js`; `backend/reminders.md` R21, R22; ticket 027; `.scratch/role-based-chat-agent/spec.md` Architecture.
 
 ## Notes
 

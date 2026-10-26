@@ -30,8 +30,8 @@
 | 024 | [Decide the tool signatures](024-decide-tool-signatures.md) | todo | 018 | human |
 | 025 | [Decide stages and attestation fields](025-decide-stages-and-attestation-fields.md) | todo | 018 | human |
 | 026 | [Find the platform audit log's shape](026-find-audit-log-shape.md) | todo | 018 | human |
-| 027 | [Chat endpoint gives a plain reply (umbrella for 027a to 027d)](027-chat-endpoint-plain-reply.md) | todo (027a done; 027b to 027d remain) | 008, 009, 011, 012 | agent |
-| 027b | [Real model client](027b-real-model-client.md) | todo | 027a | agent |
+| 027 | [Chat endpoint gives a plain reply (umbrella for 027a to 027d)](027-chat-endpoint-plain-reply.md) | todo (027a done; 027b review pending; 027c, 027d remain) | 008, 009, 011, 012 | agent |
+| 027b | [Real model client](027b-real-model-client.md) | review pending | 027a | agent |
 | 027c | [Loop with one stub tool](027c-loop-with-one-stub-tool.md) | todo | 027a | agent |
 | 027d | [Four per-role system prompts](027d-per-role-system-prompts.md) | todo | 027c | human |
 | 028 | [Owner sets environment variables](028-owner-sets-environment-variables.md) | todo | 021, 027b | human |
