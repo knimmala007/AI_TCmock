@@ -44,3 +44,5 @@ Ticket 028 (the variables); `backend/reminders.md` R15, R16; `.scratch/role-base
 ## Notes
 
 Stop and report if a key shows up anywhere it should not, and rotate that key. Agents do not hold or read the key. The prompt is still the placeholder until 027d, so the reply will be generic; that is expected.
+
+Repeat this manual run after 031 (027d added the per-role prompts, which describe tools that only exist from 031 on).

@@ -14,9 +14,7 @@ import { clientKey } from './demo_session.js';
 import { redact } from './events.js';
 import { runLoop } from './agent_loop.js';
 import { createModelGate, createTurn } from './model_gate.js';
-
-// Placeholder; ticket 027d replaces it with the per-role prompts.
-export const SYSTEM_PROMPT = 'You are a helpful assistant for a real estate transaction. Answer briefly and plainly.';
+import { promptFor } from './prompts.js';
 
 export const RATE_LIMIT_REPLY = 'You are sending messages too quickly. Please wait a minute and try again.';
 
@@ -52,7 +50,7 @@ export function createAgentHandler({
     const history = await threads.recent(scope);
     const turn = createTurn({ sessionId, turnId, role, dealId });
     const r = await runLoop(modelGate, turn, {
-      system: SYSTEM_PROMPT, messages: [...history, { role: 'user', content: message }], registry,
+      system: promptFor(role), messages: [...history, { role: 'user', content: message }], registry,
     });
     if (r.stopped === 'daily_cap') return json(429, { reply: r.reply, turnId });
     if (r.stopped) return json(200, { reply: r.reply, turnId });
