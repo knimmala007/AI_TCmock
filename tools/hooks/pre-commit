@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+bad=$(git diff --cached --name-only | grep -E '(^|/)(\.env[^/]*|settings\.json|\.DS_Store)$|^docs/.*\.pdf$|\.(pem|key)$' | grep -v '\.env\.example$' || true)
+if [ -n "$bad" ]; then echo "Blocked: these files must never be committed:"; echo "$bad"; exit 1; fi
+if git diff --cached -U0 | grep -E '^\+' | grep -qE 'sk-ant-[A-Za-z0-9_-]{10,}'; then
+  echo "Blocked: a Claude API key shape is in the staged changes."; exit 1
+fi
