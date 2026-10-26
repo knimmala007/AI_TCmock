@@ -1,6 +1,6 @@
 # Issues: role-based chat agent
 
-61 tickets: 18 done, 38 to do, 5 blocked. Source of requirements: `.scratch/role-based-chat-agent/spec.md`, `.claude/CONTEXT.MD`, ADRs 0001 to 0006, `backend/reminders.md`. Words follow `GLOSSARY.md`.
+62 tickets: 18 done, 39 to do, 5 blocked. Source of requirements: `.scratch/role-based-chat-agent/spec.md`, `.claude/CONTEXT.MD`, ADRs 0001 to 0006, `backend/reminders.md`. Words follow `GLOSSARY.md`.
 
 | # | Title | Status | Depends on | Owner |
 |---|-------|--------|------------|-------|
@@ -30,7 +30,7 @@
 | 024 | [Decide the tool signatures](024-decide-tool-signatures.md) | todo | 018 | human |
 | 025 | [Decide stages and attestation fields](025-decide-stages-and-attestation-fields.md) | todo | 018 | human |
 | 026 | [Find the platform audit log's shape](026-find-audit-log-shape.md) | todo | 018 | human |
-| 027 | [Chat endpoint gives a plain reply](027-chat-endpoint-plain-reply.md) | todo | 008, 009, 011, 012 | agent |
+| 027 | [Chat endpoint gives a plain reply](027-chat-endpoint-plain-reply.md) | todo (027a done: endpoint, modelGate, fake model) | 008, 009, 011, 012 | agent |
 | 028 | [Owner sets environment variables](028-owner-sets-environment-variables.md) | todo | 021, 027 | human |
 | 029 | [Chat panel in the app](029-chat-panel-in-the-app.md) | todo | 027 | agent |
 | 030 | [No-legal-advice guard](030-no-legal-advice-guard.md) | todo | 027 | agent |
@@ -65,6 +65,7 @@
 | 059 | [Write events to the platform's audit log](059-write-events-to-platform-audit-log.md) | blocked | 026, 027 | agent |
 | 060 | [Real loan-checklist code for the Lender](060-real-lender-checklist-code.md) | blocked | 055 | agent |
 | 061 | [Remove `aiagent` and add `lender` in the Kialae `scope.js`](061-remove-aiagent-from-kialae-scope.md) | blocked | 014 | human |
+| 062 | [Log refused turns (rate limit, daily cap, call limit) in events.js](062-log-refused-turns.md) | todo | 027 | agent |
 
 ## Why this order
 

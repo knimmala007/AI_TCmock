@@ -35,3 +35,5 @@ handler: scripted fake model; each acceptance item.
 ## Notes
 
 The real client is first exercised in ticket 044. The system prompt names the acting role; ticket 030 adds the legal-advice rules.
+
+027a exception: the 9th-model-call limit (AC4) is tested by driving `modelGate` directly (`backend/tests/model_gate.test.js`), because 027a has no loop and a turn makes one model call, so the limit cannot be reached through the handler. This is a one-time exception for 027a; the 9th-call limit gets re-tested through the handler in 027c/032.
