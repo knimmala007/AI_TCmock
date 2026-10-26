@@ -1,5 +1,5 @@
 # 027d: Four per-role system prompts
-Status: todo | Depends on: 027c | Owner: human | Size: S
+Status: review pending | Depends on: 027c | Owner: human | Size: S
 
 ## What solving this does
 
@@ -10,12 +10,12 @@ Files: create `backend/prompts.js`, `backend/tests/prompts.test.js` | modify `ba
 ## Scope
 
 In: Broker, seller, buyer and lender prompts; choosing the prompt from the session's role.
-Out: The legal-advice rules (030); any enforcement, which stays in code.
+Out: Any enforcement, which stays in code. (The legal-advice prompt rule is in the shared CORE text; ticket 030 adds only the code guard.)
 
 ## Acceptance criteria
 
 1. There is one prompt each for broker, seller, buyer and lender, and the role is chosen from the session only.
-2. Each prompt names that role's allowed tools, as listed in `backend/roles.js`, and no other role's tools.
+2. Prompts refer to tools generically; the tools offered to each role come from the registry (`backend/roles.js`). Reason: naming tools that are not yet offered makes the model try to call them.
 3. Each prompt sets the role's tone.
 4. Each prompt tells the assistant to refuse out-of-scope questions politely and to hand them to a person where a tool exists for it.
 5. Each prompt tells the assistant to never guess a missing fact and to flag it instead.
@@ -24,7 +24,7 @@ Out: The legal-advice rules (030); any enforcement, which stays in code.
 
 ## Tests
 
-shared rules / handler: every role has a prompt; each prompt names only its own role's tools; an unknown role has no prompt. No model call.
+handler: every role has a prompt, chosen from the session only; each prompt holds only its own role section; an unknown role has no prompt; no key or secret in any prompt. Scripted fake model, no real model call.
 
 ## Sources
 

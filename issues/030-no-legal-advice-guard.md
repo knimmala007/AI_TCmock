@@ -1,16 +1,16 @@
-# 030: No-legal-advice code guard
-Status: todo | Depends on: 027c | Owner: agent | Size: M
+# 030: No-legal-advice guard
+Status: todo | Depends on: 027d | Owner: agent | Size: M
 
 ## What solving this does
 
-The assistant refuses to give legal advice. A code check on the reply enforces it. The prompt-side rule belongs to the role prompts (027d), not to this ticket.
+The assistant refuses to give legal advice. The prompt rule is already in the shared CORE text (027d); this ticket adds the code check on the reply.
 
 Files: create `backend/legal_guard.js`, `backend/tests/legal_guard.test.js` | modify `backend/agent_loop.js` | reference `backend/status.js`
 
 ## Scope
 
-In: Fixed refusal, reply post-check, `LEGAL_JUDGMENT`.
-Out (moved): The prompt rule, which is written in the role prompts (027d).
+In: Fixed refusal, reply post-check, `LEGAL_JUDGMENT` (the code guard only).
+Out: The prompt rule, which CORE in `backend/prompts.js` already has.
 Out: Guarantees: this is best effort.
 
 ## Acceptance criteria
