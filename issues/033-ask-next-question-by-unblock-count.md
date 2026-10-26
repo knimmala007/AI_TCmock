@@ -1,5 +1,5 @@
 # 033: `ask_next_question` picks the question in code
-Status: todo | Depends on: 024, 031 | Owner: agent | Size: M
+Status: review pending | Depends on: 024, 031 | Owner: agent | Size: M
 
 ## What solving this does
 

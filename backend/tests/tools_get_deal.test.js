@@ -86,7 +86,8 @@ test('each role is offered its own entry in the registry, limited to the tools t
     await ready;
     await handler(post(cookieFor(role)));
     const offered = requests[0].tools.map(t => t.name);
-    assert.deepStrictEqual(offered, [toolName(role)]);
+    // ask_next_question (033) is built for the broker and the seller; the buyer and lender do not have it.
+    assert.deepStrictEqual(offered, ['broker', 'seller'].includes(role) ? [toolName(role), 'ask_next_question'] : [toolName(role)]);
     assert.ok(offered.every(n => toolsFor(role).includes(n)));
   }
 });

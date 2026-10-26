@@ -16,10 +16,21 @@ const fail = (code, message, next_step) => ({ ok: false, error: { code, message,
 export const NO_DEAL = fail('NOT_FOUND', 'No deal file is available for this session.',
   'Tell the user the deal could not be loaded and stop.');
 
+// Seller certifications (ADR 0010): only the seller session is asked them. Every other role skips them and
+// never counts them as candidates. Ticket 039 enforces the save side; the list is a constant here, not a rules.js flag.
+export const ATTESTATION_FIELDS = Object.freeze(['waterHeater', 'smokeAlarm', 'coDetector']);
+export const NO_QUESTIONS_LEFT = 'No unanswered questions are left for this deal.';
+
 // No input: the deal and the role are not arguments, so nothing the model passes is read.
 const NO_INPUT = { type: 'object', properties: {}, additionalProperties: false };
 
 const DEFINITIONS = {
+  ask_next_question: {
+    name: 'ask_next_question',
+    description: 'Returns the next unanswered question for this deal, chosen by the system. Ask the user exactly that ' +
+      'question in your own words; you cannot pick a different one. Takes no arguments.',
+    input_schema: NO_INPUT,
+  },
   get_deal: {
     name: 'get_deal',
     description: 'Reads the deal for this conversation: address, stage, jurisdiction, field values, missing fields and ' +
@@ -37,7 +48,7 @@ const DEFINITIONS = {
 // What the role may see of the deal, as plain data. Nothing outside the role's view is built, so nothing
 // outside it can be returned or redacted-by-accident.
 function viewOf(role, deal) {
-  const engine = createEngine({ getAnswers: () => deal.answers || {}, getDeal: () => deal, getDocs: () => DOCS });
+  const engine = engineFor(deal);
   const required = engine.requiredForms();
   // The lender's forms come from the engine's required forms, so APPR shows only when the buyer is financing.
   const docs = engine.activeDocs().filter(d => canAccessForm(role, d.code) && (role !== 'lender' || required.includes(d.code)));
@@ -68,6 +79,10 @@ function viewOf(role, deal) {
   };
 }
 
+function engineFor(deal) {
+  return createEngine({ getAnswers: () => deal.answers || {}, getDeal: () => deal, getDocs: () => DOCS });
+}
+
 export function createTools({ repository, seenFields }) {
   async function getDeal({ turn }) {
     const deal = await repository.get(turn.dealId);
@@ -77,13 +92,32 @@ export function createTools({ repository, seenFields }) {
     return { ok: true, data: redactDeal(view), field_names: fieldNames };
   }
 
+  // The question is chosen by the rules (unblock count, then question order). Nothing the model passes is read.
+  async function askNextQuestion({ turn }) {
+    const deal = await repository.get(turn.dealId);
+    if (!deal) return NO_DEAL;
+    const engine = engineFor(deal);
+    const next = engine.nextByUnblock({
+      skip: turn.role === 'seller' ? [] : ATTESTATION_FIELDS,
+      formFilter: code => canAccessForm(turn.role, code),
+    });
+    if (!next) return { ok: true, data: redactDeal({ done: true, message: NO_QUESTIONS_LEFT }), field_names: [] };
+    const { question: q, unblocks } = next;
+    const fieldNames = [q.k];
+    await seenFields.add({ dealId: turn.dealId, sessionId: turn.sessionId, role: turn.role }, fieldNames);
+    const question = { field_name: q.k, text: q.q, type: q.type, why: q.why, ...(q.options ? { options: q.options } : {}) };
+    return { ok: true, data: redactDeal({ question, unblocks }), field_names: fieldNames };
+  }
+
   const getDealTool = name => ({
     definition: DEFINITIONS[name],
     // Arguments are ignored whatever they are, so they must not change the repeated-call key either.
     key: () => ({}),
     run: getDeal,
   });
-  const implemented = { get_deal: getDealTool('get_deal'), get_deal_status: getDealTool('get_deal_status') };
+  const implemented = { get_deal: getDealTool('get_deal'), get_deal_status: getDealTool('get_deal_status'),
+    ask_next_question: { definition: DEFINITIONS.ask_next_question, key: () => ({}), run: askNextQuestion },
+  };
 
   return {
     registry: implemented,

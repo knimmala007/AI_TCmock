@@ -170,6 +170,22 @@ function askable(q){ return q.asks ? !!q.asks() : true; }
 function pending(){ return QUESTIONS.filter(q=> !ans(q.k) && askable(q)); }
 function nextQ(){ return pending()[0] || null; }
 
+/* The agent's ordering (ADR 0008): pending questions ranked by how many required forms an answer feeds
+   (each is still unready: this question is unanswered).
+   Ties keep QUESTIONS order. The browser's nextQ() above is unchanged.
+   skip = question keys never offered; a question with no visible form is never offered; formFilter(code) = the forms that count (the caller's role view). */
+function rankedQuestions({skip=[], formFilter=()=>true} = {}){
+  const required = requiredForms();
+  const unblocks = q => (q.fills||[]).filter(c=> required.includes(c) && formFilter(c)).length;
+  // A question that feeds no form the caller can see is skipped, not ranked last.
+  const visible = q => (q.fills||[]).some(formFilter);
+  return pending().filter(q=>!skip.includes(q.k) && visible(q))
+    .map((question, i)=>({question, unblocks: unblocks(question), i}))
+    .sort((a,b)=> b.unblocks - a.unblocks || a.i - b.i)
+    .map(({question, unblocks})=>({question, unblocks}));
+}
+function nextByUnblock(opts){ return rankedQuestions(opts)[0] || null; }
+
 /* A form is ready when every askable question that feeds it has been answered. */
 function formFields(code){ return QUESTIONS.filter(q=>(q.fills||[]).includes(code) && askable(q)); }
 function formReady(code){ const f=formFields(code); return f.length===0 || f.every(q=>ans(q.k)); }
@@ -260,6 +276,6 @@ function answer(k, v, src){
   return {k, v, added, removed, filled, skippedNow};
 }
 
-return {QUESTIONS, BASE_FORMS, ans, ansV, fieldVal, requiredForms, askable, pending, nextQ, formFields,
+return {QUESTIONS, BASE_FORMS, ans, ansV, fieldVal, requiredForms, askable, pending, nextQ, rankedQuestions, nextByUnblock, formFields,
         formReady, intakeProgress, applyIntakeToDeal, activeDocs, missingFields, answer};
 }
