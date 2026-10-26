@@ -1,6 +1,6 @@
 # Issues: role-based chat agent
 
-65 tickets: 20 done, 39 to do, 5 blocked, 1 closed (032). Source of requirements: `.scratch/role-based-chat-agent/spec.md`, `.claude/CONTEXT.MD`, ADRs 0001 to 0006, `backend/reminders.md`. Words follow `GLOSSARY.md`.
+66 tickets: 20 done, 40 to do, 5 blocked, 1 closed (032). Source of requirements: `.scratch/role-based-chat-agent/spec.md`, `.claude/CONTEXT.MD`, ADRs 0001 to 0006, `backend/reminders.md`. Words follow `GLOSSARY.md`.
 
 | # | Title | Status | Depends on | Owner |
 |---|-------|--------|------------|-------|
@@ -35,6 +35,7 @@
 | 027c | [Loop with one stub tool](027c-loop-with-one-stub-tool.md) | todo | 027a | agent |
 | 027d | [Four per-role system prompts](027d-per-role-system-prompts.md) | todo | 027c | human |
 | 028 | [Owner sets environment variables](028-owner-sets-environment-variables.md) | todo | 021, 027b | human |
+| 028a | [One manual real model run](028a-one-manual-real-model-run.md) | todo | 027b, 027c, 028 | human |
 | 029 | [Chat panel in the app](029-chat-panel-in-the-app.md) | todo | 027a | agent |
 | 030 | [No-legal-advice guard](030-no-legal-advice-guard.md) | todo | 027d | agent |
 | 031 | [Broker can ask the assistant about the deal (`get_deal`)](031-get-deal-scoped-to-role.md) | todo | 024, 025, 027c | agent |
