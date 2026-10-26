@@ -1,5 +1,5 @@
 # 031a: Buyer-attack handler tests
-Status: todo | Depends on: 031 | Owner: agent | Size: S
+Status: review pending | Depends on: 031 | Owner: agent | Size: S
 
 ## What solving this does
 
