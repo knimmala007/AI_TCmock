@@ -1,5 +1,5 @@
 # 028: Owner sets environment variables
-Status: todo | Depends on: 021, 027 | Owner: human | Size: S
+Status: todo | Depends on: 021, 027b | Owner: human | Size: S
 
 ## What solving this does
 

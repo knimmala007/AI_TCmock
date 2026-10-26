@@ -1,5 +1,5 @@
 # 030: No-legal-advice guard
-Status: todo | Depends on: 027 | Owner: agent | Size: M
+Status: todo | Depends on: 027d | Owner: agent | Size: M
 
 ## What solving this does
 

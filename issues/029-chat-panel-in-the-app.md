@@ -1,5 +1,5 @@
 # 029: Chat panel in the app
-Status: todo | Depends on: 027 | Owner: agent | Size: M
+Status: todo | Depends on: 027a | Owner: agent | Size: M
 
 ## What solving this does
 

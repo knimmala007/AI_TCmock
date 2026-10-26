@@ -1,5 +1,5 @@
 # 031: Broker can ask the assistant about the deal (`get_deal`)
-Status: todo | Depends on: 024, 025, 027 | Owner: agent | Size: M
+Status: todo | Depends on: 024, 025, 027c | Owner: agent | Size: M
 
 ## What solving this does
 
@@ -10,7 +10,7 @@ Files: create `backend/tools.js`, `backend/tests/tools_get_deal.test.js` | modif
 ## Scope
 
 In: Tool registry filtered by role, tool execution, `get_deal`, the transaction id binding.
-Out: Other tools; the call limits (032).
+Out: Other tools; the call limits (027c).
 
 ## Acceptance criteria
 

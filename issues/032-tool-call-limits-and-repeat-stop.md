@@ -1,26 +1,28 @@
 # 032: Tool-call limits and repeat stop
-Status: todo | Depends on: 031 | Owner: agent | Size: S
+Status: closed by 027c | Depends on: 027c | Owner: agent | Size: S
 
 ## What solving this does
 
-A runaway turn ends cleanly: at most 20 tool calls, and the same call with the same arguments stops after two tries.
+Nothing further. Ticket 027c builds the 20-tool-call limit and the repeat stop in the hand-written loop. Logging the stops moves to ticket 062.
 
-Files: modify `backend/agent_loop.js`, `backend/config.js` (only if needed) | create `backend/tests/agent_limits.test.js`
+Files: none
 
 ## Scope
 
-In: The two limits and their plain message.
-Out: The model-call limit (done in 027).
+In: Nothing.
+Out: Everything. The limits and their plain message are in 027c; the logging of limit stops is in 062.
 
 ## Acceptance criteria
 
-1. The 21st tool call in a turn ends the turn with a plain message.
-2. An identical call is allowed twice, and the third ends the turn.
-3. Both are logged as events.
+Closed. The original criteria are covered elsewhere:
+
+1. The 21st tool call in a turn ends the turn with a plain message: 027c (AC2).
+2. An identical call is allowed twice, and the third ends the turn: 027c (AC3).
+3. Both are logged as events: 062.
 
 ## Tests
 
-handler: scripted model that loops.
+None here. See 027c and 062.
 
 ## Sources
 
@@ -28,4 +30,4 @@ handler: scripted model that loops.
 
 ## Notes
 
-Values are 20 and 2.
+Closed because the loop is built in 027c, so a separate limits ticket would edit the same file for no new behaviour. Values stay 20 and 2 in `backend/config.js`.
