@@ -32,7 +32,7 @@
 | 026 | [Find the platform audit log's shape](026-find-audit-log-shape.md) | todo | 018 | human |
 | 027 | [Chat endpoint gives a plain reply](027-chat-endpoint-plain-reply.md) | todo (027a done: endpoint, modelGate, fake model) | 008, 009, 011, 012 | agent |
 | 028 | [Owner sets environment variables](028-owner-sets-environment-variables.md) | todo | 021, 027 | human |
-| 029 | [Chat panel in the app](029-chat-panel-in-the-app.md) | todo | 027 | agent |
+| 029 | [Chat panel in the app](029-chat-panel-in-the-app.md) | todo (029a done: panel; history read open) | 027 | agent |
 | 030 | [No-legal-advice guard](030-no-legal-advice-guard.md) | todo | 027 | agent |
 | 031 | [Broker can ask the assistant about the deal (`get_deal`)](031-get-deal-scoped-to-role.md) | todo | 024, 025, 027 | agent |
 | 032 | [Tool-call limits and repeat stop](032-tool-call-limits-and-repeat-stop.md) | todo | 031 | agent |

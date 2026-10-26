@@ -31,3 +31,5 @@ handler: render the panel for each role against the stub DOM; endpoint history r
 ## Notes
 
 The UI is Ethan's area: coordinate before changing layout.
+
+029a done: the panel (`chatPanel`, `chatSend`, `chatResult` in `index.html`) is appended as a new card at the end of the broker, seller and buyer views; no existing markup changed. AC 1-5 are covered by `backend/tests/chat_panel.test.js`. Still open: the endpoint history read in `api/agent.js` (left out on the owner's instruction not to touch backend code in this session), so the panel shows only this page load's turns.
