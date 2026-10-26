@@ -8,9 +8,8 @@ import { createThreadStore } from '../threads.js';
 import { cookieName, sessionFromRequest, signSession } from '../session.js';
 import { createAgentHandler } from '../agent_handler.js';
 import { CALL_LIMIT_REPLY } from '../model_gate.js';
-import {
-  STUB_TOOL, STUB_TEXT, TOOL_REGISTRY, TOOL_CALL_LIMIT_REPLY, REPEAT_CALL_REPLY, TRUNCATED_REPLY, EMPTY_REPLY,
-} from '../agent_loop.js';
+import { TOOL_CALL_LIMIT_REPLY, REPEAT_CALL_REPLY, TRUNCATED_REPLY, EMPTY_REPLY } from '../agent_loop.js';
+import { STUB_TOOL, STUB_TEXT, stubRegistry } from './stub_tool.js';
 import { MODEL_CALLS_PER_TURN, TOOL_CALLS_PER_TURN } from '../config.js';
 
 let realFetch;
@@ -40,7 +39,7 @@ function scripted(...replies) {
 // The stub tool wrapped to record the topic of every call it actually runs.
 function spied() {
   const ran = [];
-  const stub = TOOL_REGISTRY[STUB_TOOL.name];
+  const stub = stubRegistry()[STUB_TOOL.name];
   const registry = { [STUB_TOOL.name]: { ...stub, run: ({ args }) => { ran.push(args.topic); return stub.run({ args }); } } };
   return { registry, ran };
 }
@@ -59,7 +58,7 @@ function setupWith(registry, ...replies) {
     dailyCap: createDailyCap(kv, { cap: 100 }),
     eventLog: createEventLog(store),
     threads,
-    registry,
+    registry: registry ?? stubRegistry(),
   });
   return { handler, store, threads, requests: fake.requests };
 }
@@ -84,7 +83,7 @@ test('a tool call round trip: tool_use, tool_result sent back, then the final te
   ]);
 });
 
-test('the stub tool is offered to every role', async () => {
+test('an injected registry is offered to every role as given', async () => {
   for (const role of ['broker', 'seller', 'buyer', 'lender']) {
     const { handler, requests } = setup(ok('hi'));
     await handler(post(cookieFor(role)));

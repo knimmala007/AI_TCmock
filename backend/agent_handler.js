@@ -14,6 +14,7 @@ import { clientKey } from './demo_session.js';
 import { redact } from './events.js';
 import { runLoop } from './agent_loop.js';
 import { createModelGate, createTurn } from './model_gate.js';
+import { createTools } from './tools.js';
 
 // Placeholder; ticket 027d replaces it with the per-role prompts.
 export const SYSTEM_PROMPT = 'You are a helpful assistant for a real estate transaction. Answer briefly and plainly.';
@@ -26,8 +27,10 @@ const json = (status, body, extra = {}) => new Response(JSON.stringify(body), {
 
 export function createAgentHandler({
   callModel, getSession, limiter, dailyCap, eventLog, threads,
-  perMinute = CHAT_PER_MINUTE, newTurnId = () => crypto.randomUUID(), registry,
+  perMinute = CHAT_PER_MINUTE, newTurnId = () => crypto.randomUUID(), registry, repository, seenFields,
 }) {
+  // `registry` is a test seam and is offered as given. Otherwise each turn gets the tools of its role.
+  const tools = repository && seenFields ? createTools({ repository, seenFields }) : null;
   const modelGate = callModel ? createModelGate({ callModel, dailyCap, eventLog }) : null;
 
   return async function POST(req) {
@@ -52,7 +55,9 @@ export function createAgentHandler({
     const history = await threads.recent(scope);
     const turn = createTurn({ sessionId, turnId, role, dealId });
     const r = await runLoop(modelGate, turn, {
-      system: SYSTEM_PROMPT, messages: [...history, { role: 'user', content: message }], registry,
+      system: SYSTEM_PROMPT, messages: [...history, { role: 'user', content: message }],
+      registry: registry ?? (tools ? tools.registry : {}),
+      allowed: registry ? null : (tools ? tools.forRole(turn.role) : []),
     });
     if (r.stopped === 'daily_cap') return json(429, { reply: r.reply, turnId });
     if (r.stopped) return json(200, { reply: r.reply, turnId });

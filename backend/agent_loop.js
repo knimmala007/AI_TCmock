@@ -18,28 +18,15 @@ export const REPEAT_CALL_REPLY =
 export const TRUNCATED_REPLY = 'My answer was cut off before it was finished. Please ask again, or ask for a shorter answer.';
 export const EMPTY_REPLY = 'I could not put together an answer. Please try asking again.';
 
-export const STUB_TEXT = 'The stub tool works.';
+// A tool throws this to say its arguments are bad; the message goes back to the model.
+// Any other thrown error becomes a fixed line, so no message can carry data outside the role's view (R23).
+export class ToolArgsError extends Error {}
+export const TOOL_NOT_ALLOWED = 'That tool is not available to your role.';
+export const TOOL_FAILED = 'The tool failed. Try something else or tell the user.';
 
-// The one stub tool (ticket 027c): read-only, fixed text, touches no deal data. Ticket 031 replaces it.
-export const STUB_TOOL = {
-  name: 'stub_ping',
-  description: 'Returns a fixed line of text. Reads nothing and changes nothing.',
-  input_schema: { type: 'object', properties: { topic: { type: 'string' } }, additionalProperties: false },
-};
-
-// name -> { definition, run({ turn, args }) }. A tool throws to say its arguments are bad.
-export const TOOL_REGISTRY = {
-  stub_ping: {
-    definition: STUB_TOOL,
-    run({ args }) {
-      const isObject = args && typeof args === 'object' && !Array.isArray(args);
-      if (!isObject || Object.keys(args).some(k => k !== 'topic') || ('topic' in args && typeof args.topic !== 'string')) {
-        throw new Error('stub_ping takes an optional text "topic" and nothing else');
-      }
-      return STUB_TEXT;
-    },
-  },
-};
+// name -> { definition, run({ turn, args }), key?(args) }. A tool returns a string or an object, which the
+// loop sends as JSON. `key` says which of the arguments make a call "the same" for the repeat stop;
+// without it the whole input counts. The registry for a turn is built per role (tools.js).
 
 // The same JSON whatever the key order, so {a,b} and {b,a} are one call.
 function canonical(v) {
@@ -51,19 +38,23 @@ function canonical(v) {
 }
 
 // Runs one tool_use block. A bad name or bad arguments become an error result, not a stopped turn.
-async function runTool(registry, turn, block) {
+async function runTool(registry, turn, block, allowed) {
   const tool = Object.hasOwn(registry, block.name) ? registry[block.name] : null;
   const result = { type: 'tool_result', tool_use_id: block.id };
   if (!tool) return { ...result, is_error: true, content: `No tool named "${block.name}" is available.` };
+  if (allowed && !allowed.includes(block.name)) return { ...result, is_error: true, content: TOOL_NOT_ALLOWED };
   try {
-    return { ...result, content: String(await tool.run({ turn, args: block.input })) };
+    const out = await tool.run({ turn, args: block.input });
+    const text = typeof out === 'string' ? out : JSON.stringify(out);
+    return out && out.ok === false ? { ...result, is_error: true, content: text } : { ...result, content: text };
   } catch (e) {
-    return { ...result, is_error: true, content: String(e && e.message) };
+    return { ...result, is_error: true, content: e instanceof ToolArgsError ? e.message : TOOL_FAILED };
   }
 }
 
-export async function runLoop(modelGate, turn, { system, messages, registry = TOOL_REGISTRY }) {
-  const tools = Object.values(registry).map(t => t.definition);
+export async function runLoop(modelGate, turn, { system, messages, registry = {}, allowed = null }) {
+  // `allowed` is the names the turn's role may use (from its frozen role); without it every registry tool is offered.
+  const tools = Object.entries(registry).filter(([n]) => !allowed || allowed.includes(n)).map(([, t]) => t.definition);
   const thread = [...messages];
   const seen = new Map(); // canonical call -> times made
   let toolCalls = 0;
@@ -85,12 +76,13 @@ export async function runLoop(modelGate, turn, { system, messages, registry = TO
     toolCalls += blocks.length;
     if (toolCalls > TOOL_CALLS_PER_TURN) return { stopped: 'tool_call_limit', reply: TOOL_CALL_LIMIT_REPLY };
     for (const block of blocks) {
-      const key = `${block.name} ${canonical(block.input)}`;
+      const tool = Object.hasOwn(registry, block.name) ? registry[block.name] : null;
+      const key = `${block.name} ${canonical(tool && tool.key ? tool.key(block.input) : block.input)}`;
       seen.set(key, (seen.get(key) ?? 0) + 1);
       if (seen.get(key) > REPEATED_CALL_LIMIT) return { stopped: 'repeat_call', reply: REPEAT_CALL_REPLY };
     }
     const results = [];
-    for (const block of blocks) results.push(await runTool(registry, turn, block));
+    for (const block of blocks) results.push(await runTool(registry, turn, block, allowed));
     thread.push({ role: 'assistant', content }, { role: 'user', content: results });
   }
 }

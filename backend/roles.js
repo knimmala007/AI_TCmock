@@ -1,6 +1,6 @@
 // Role registry: role -> allowed tools -> data filter. Applied before the model sees anything.
 // The role comes from the server-side session, never from chat text (ADR 0002).
-import { DOCS } from './fixtures.js';
+import { BUYER_STAGES, DOCS, SELLER_STAGES } from './fixtures.js';
 
 export class UnknownRole extends Error {
   constructor(role) { super(`unknown role: ${role}`); this.name = 'UnknownRole'; }
@@ -46,4 +46,20 @@ export function canAccessForm(role, code) {
 export function visibleDocCodes(role) {
   checkRole(role);
   return DOCS.filter(d => canAccessForm(role, d.code)).map(d => d.code);
+}
+
+// The buyer stage at which the lender's view of the deal starts (index of "Loan & Appraisal").
+const LENDER_FIRST_STAGE = BUYER_STAGES.indexOf('Loan & Appraisal');
+
+// The stage(s) a role may see, keyed by side (ADR 0009). The broker sees both, the seller its own,
+// the buyer its own. The lender sees the buyer's stage from "Loan & Appraisal" on, and only when the
+// deal needs a lender (`financed`: the rules engine requires the appraisal); otherwise nothing.
+export function stageFor(role, deal, { financed = false } = {}) {
+  checkRole(role);
+  const seller = { index: deal.seller_stage, name: SELLER_STAGES[deal.seller_stage] };
+  const buyer = { index: deal.buyer_stage, name: BUYER_STAGES[deal.buyer_stage] };
+  if (role === 'broker') return { seller, buyer };
+  if (role === 'seller') return { seller };
+  if (role === 'buyer') return { buyer };
+  return financed && deal.buyer_stage >= LENDER_FIRST_STAGE ? { buyer } : null;
 }
