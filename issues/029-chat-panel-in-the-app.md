@@ -1,0 +1,33 @@
+# 029: Chat panel in the app
+Status: todo | Depends on: 027 | Owner: agent | Size: M
+
+## What solving this does
+
+Each role view gets a chat box. A person types, sees the reply, and sees refusals and limits as plain messages. Switching roles starts a clean conversation.
+
+Files: modify `index.html`, `api/agent.js` (add a history read) | create `backend/tests/chat_panel.test.js` | reference `backend/threads.js`
+
+## Scope
+
+In: The panel, send, show reply and recent history.
+Out: Tool output formatting; the Lender view (054).
+
+## Acceptance criteria
+
+1. The panel starts a session as the viewer's role before sending (`syncDemoRole`).
+2. Sending shows the reply.
+3. A 401, 429 or 503 shows a plain message.
+4. Switching roles clears the panel and shows no earlier turns.
+5. No key or token is in the page.
+
+## Tests
+
+handler: render the panel for each role against the stub DOM; endpoint history read.
+
+## Sources
+
+`.scratch/role-based-chat-agent/spec.md` User stories 31 to 34, 49, 50; `.claude/CONTEXT.MD` Team split.
+
+## Notes
+
+The UI is Ethan's area: coordinate before changing layout.
