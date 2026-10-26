@@ -1,6 +1,6 @@
 # Issues: role-based chat agent
 
-66 tickets: 27 done, 33 to do, 5 blocked, 1 closed (032). Source of requirements: `.scratch/role-based-chat-agent/spec.md`, `.claude/CONTEXT.MD`, ADRs 0001 to 0006, `backend/reminders.md`. Words follow `GLOSSARY.md`.
+68 tickets: 31 done, 31 to do, 5 blocked, 1 closed (032). Source of requirements: `.scratch/role-based-chat-agent/spec.md`, `.claude/CONTEXT.MD`, ADRs 0001 to 0006, `backend/reminders.md`. Words follow `GLOSSARY.md`.
 
 | # | Title | Status | Depends on | Owner |
 |---|-------|--------|------------|-------|
@@ -37,12 +37,12 @@
 | 028 | [Owner sets environment variables](028-owner-sets-environment-variables.md) | todo | 021, 027b | human |
 | 028a | [One manual real model run](028a-one-manual-real-model-run.md) | todo | 027b, 027c, 028 | human |
 | 029 | [Chat panel in the app](029-chat-panel-in-the-app.md) | todo (029a done: panel; history read open) | 027a | agent |
-| 030 | [No-legal-advice code guard](030-no-legal-advice-guard.md) | todo | 027c | agent |
-| 030a | [Polite off-topic refusal](030a-polite-off-topic-refusal.md) | review pending | 027d, 030 | agent |
+| 030 | [No-legal-advice code guard](030-no-legal-advice-guard.md) | done | 027c | agent |
+| 030a | [Polite off-topic refusal](030a-polite-off-topic-refusal.md) | done | 027d, 030 | agent |
 | 031 | [Broker can ask the assistant about the deal (`get_deal`)](031-get-deal-scoped-to-role.md) | done | 024, 025, 027c | agent |
-| 031a | [Buyer-attack handler tests](031a-buyer-attack-handler-tests.md) | todo | 031 | agent |
+| 031a | [Buyer-attack handler tests](031a-buyer-attack-handler-tests.md) | done | 031 | agent |
 | 032 | [Tool-call limits and repeat stop](032-tool-call-limits-and-repeat-stop.md) | closed by 027c; logging moves to 062 | 027c | agent |
-| 033 | [`ask_next_question` picks the question in code](033-ask-next-question-by-unblock-count.md) | todo | 024, 031 | agent |
+| 033 | [`ask_next_question` picks the question in code](033-ask-next-question-by-unblock-count.md) | done | 024, 031 | agent |
 | 034 | [`save_answers` saves a fact](034-save-answers-saves-a-fact.md) | todo | 033 | agent |
 | 035 | [Forms with no template are flagged, not filled](035-untemplated-forms-flagged-not-filled.md) | todo | 034 | agent |
 | 036 | [`save_answers` field-name guard and batch cap](036-save-answers-field-guard-and-batch-cap.md) | todo | 034 | agent |
