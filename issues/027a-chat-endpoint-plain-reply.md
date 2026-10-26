@@ -40,7 +40,7 @@ Each part's own tests. Tests never call the real model.
 
 ## Sources
 
-`.scratch/role-based-chat-agent/spec.md` Architecture, Memory, Guardrails; ADR 0001, 0006; `backend/reminders.md` R15, R16.
+`.scratch/role-based-chat-agent/spec.md` Architecture, Memory, Guardrails; ADR 0001, 0006; `backend/reminders.md` R15, R21.
 
 ## Notes
 
