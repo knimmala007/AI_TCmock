@@ -43,4 +43,6 @@ Ticket 028 (the variables); `backend/reminders.md` R15, R16; `.scratch/role-base
 
 ## Notes
 
-Stop and report if a key shows up anywhere it should not, and rotate that key. Agents do not hold or read the key. The prompt is still the placeholder until 027d, so the reply will be generic; that is expected.
+Stop and report if a key shows up anywhere it should not, and rotate that key. Agents do not hold or read the key. The prompt may still be the placeholder (027d), so the reply may be generic; that is expected.
+
+Repeat this manual run once after ticket 031 (the first real tool, `get_deal`) is built, because that is the first time the real model sees real tool definitions and a tool result. Record the second run in the same reminders row.

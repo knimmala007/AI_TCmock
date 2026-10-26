@@ -30,14 +30,14 @@
 | 024 | [Decide the tool signatures](024-decide-tool-signatures.md) | todo | 018 | human |
 | 025 | [Decide stages and attestation fields](025-decide-stages-and-attestation-fields.md) | todo | 018 | human |
 | 026 | [Find the platform audit log's shape](026-find-audit-log-shape.md) | todo | 018 | human |
-| 027 | [Chat endpoint gives a plain reply (umbrella for 027a to 027d)](027-chat-endpoint-plain-reply.md) | todo (027a done; 027b and 027c review pending; 027d remains) | 008, 009, 011, 012 | agent |
+| 027 | [Chat endpoint gives a plain reply (umbrella for 027a to 027d)](027-chat-endpoint-plain-reply.md) | todo (027a done; 027b, 027c and 027d review pending) | 008, 009, 011, 012 | agent |
 | 027b | [Real model client](027b-real-model-client.md) | review pending | 027a | agent |
 | 027c | [Loop with one stub tool](027c-loop-with-one-stub-tool.md) | review pending | 027a | agent |
-| 027d | [Four per-role system prompts](027d-per-role-system-prompts.md) | todo | 027c | human |
+| 027d | [Four per-role system prompts](027d-per-role-system-prompts.md) | review pending | 027c | human |
 | 028 | [Owner sets environment variables](028-owner-sets-environment-variables.md) | todo | 021, 027b | human |
 | 028a | [One manual real model run](028a-one-manual-real-model-run.md) | todo | 027b, 027c, 028 | human |
 | 029 | [Chat panel in the app](029-chat-panel-in-the-app.md) | todo (029a done: panel; history read open) | 027a | agent |
-| 030 | [No-legal-advice guard](030-no-legal-advice-guard.md) | todo | 027d | agent |
+| 030 | [No-legal-advice code guard](030-no-legal-advice-guard.md) | todo | 027c | agent |
 | 031 | [Broker can ask the assistant about the deal (`get_deal`)](031-get-deal-scoped-to-role.md) | todo | 024, 025, 027c | agent |
 | 032 | [Tool-call limits and repeat stop](032-tool-call-limits-and-repeat-stop.md) | closed by 027c; logging moves to 062 | 027c | agent |
 | 033 | [`ask_next_question` picks the question in code](033-ask-next-question-by-unblock-count.md) | todo | 024, 031 | agent |
