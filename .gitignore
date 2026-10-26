@@ -3,3 +3,12 @@ backend/.env
 backend/logs/
 backend/data/
 __pycache__/
+.env.*
+!.env.example
+.vercel/
+.claude/settings.json
+.claude/settings.local.json
+.DS_Store
+docs/*.pdf
+*.pem
+*.key
