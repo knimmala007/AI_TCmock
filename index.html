@@ -64,6 +64,13 @@
   .b-warn{background:var(--warn-soft);border:1px solid #fde68a;color:#92400e}
   .b-ok{background:var(--ok-soft);border:1px solid #a7f3d0;color:#065f46}
   .b-info{background:var(--brand-soft);border:1px solid #c7d2fe;color:#3730a3}
+  .chat-log{display:flex;flex-direction:column;gap:8px;max-height:320px;overflow:auto;margin-bottom:12px}
+  .chat-log .m{max-width:80%;padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
+  .chat-log .m-you{align-self:flex-end;background:var(--brand);color:#fff}
+  .chat-log .m-agent{align-self:flex-start;background:#f1f5f9;color:var(--ink)}
+  .chat-log .m-note{align-self:stretch;max-width:none;background:var(--warn-soft);border:1px solid #fde68a;color:#92400e}
+  .chat-form{display:flex;gap:8px}
+  .chat-form input{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:9px 12px;font:inherit}
   .console{background:#0f172a;border-radius:10px;padding:14px 16px;font-family:ui-monospace,Menlo,monospace;
     font-size:12px;color:#cbd5e1;max-height:280px;overflow:auto;margin-top:14px}
   .console .l{padding:2px 0;display:flex;gap:8px}
@@ -1271,6 +1278,64 @@ window.openAuditLog = async ()=>{
   if(await syncDemoRole()) win.location = '/api/events';
   else { if(win) win.close(); alert('Audit log unavailable: could not start a session here.'); }
 };
+/* Chat panel. It sends only the message: the server takes the role from the demo-session cookie,
+   never from this request. The panel belongs to one role; a different role starts it empty, as the
+   server starts a new session (and a clean thread) on every switch. */
+let CHAT = {role:null, msgs:[], busy:false, gen:0};
+function chatFor(role){
+  if(CHAT.role!==role) CHAT = {role, msgs:[], busy:false, gen:CHAT.gen+1};
+  return CHAT;
+}
+const CHAT_FALLBACK = {
+  401:'Pick a role first.',
+  429:'You are sending messages too quickly. Please wait a minute and try again.',
+  503:'The assistant is not available right now. Please try again later.',
+};
+// A response becomes one panel line: the reply, or a plain message for a refusal or a limit.
+function chatResult(status, body){
+  const b = body || {};
+  if(status===200 && typeof b.reply==='string') return {who:'agent', text:b.reply};
+  const said = typeof b.reply==='string' ? b.reply : typeof b.message==='string' ? b.message : '';
+  return {who:'note', text: CHAT_FALLBACK[status] ? (said || CHAT_FALLBACK[status]) : 'Something went wrong. Please try again.'};
+}
+function chatLog(c){
+  return c.msgs.map(m=>`<div class="m m-${m.who}">${esc(m.text)}</div>`).join('')
+    || '<div class="lede" style="margin:0">Ask the assistant about this transaction.</div>';
+}
+function chatPanel(v){
+  const c = chatFor(v.role);
+  return `<div class="card"><h2>Assistant <span class="sub">answers as the ${esc(v.role)}</span></h2>
+    <div class="chat-log" id="chat-log">${chatLog(c)}</div>
+    <form class="chat-form" onsubmit="event.preventDefault();sendChat()">
+      <input id="chat-in" autocomplete="off" placeholder="Type a message" aria-label="Message">
+      <button class="act" id="chat-send" ${c.busy?'disabled':''}>Send</button></form></div>`;
+}
+function renderChat(){
+  const log=$('#chat-log'); if(!log) return;
+  log.innerHTML = chatLog(CHAT); log.scrollTop = log.scrollHeight;
+  const b=$('#chat-send'); if(b) b.disabled = CHAT.busy;
+}
+async function chatSend(text){
+  const c = chatFor(VIEWERS[view].role);
+  if(!text || c.busy) return;
+  const gen = c.gen;
+  c.busy = true; c.msgs.push({who:'you', text}); renderChat();
+  let line;
+  if(!(await syncDemoRole())) line = {who:'note', text:'Could not start a session for this role. Please try again.'};
+  else try{
+    const r = await fetch('/api/agent',{method:'POST',headers:{'content-type':'application/json'},
+      credentials:'same-origin',body:JSON.stringify({message:text})});
+    if(r.status===401) demoRole = null;   // the cookie is gone or expired: start a session next time
+    line = chatResult(r.status, await r.json().catch(()=>null));
+  }catch(e){ line = {who:'note', text:'Could not reach the assistant. Please try again.'}; }
+  if(CHAT.gen!==gen) return;   // the role changed while waiting: this reply belongs to the old session
+  c.busy = false; c.msgs.push(line); renderChat();
+}
+window.sendChat = ()=>{
+  const box=$('#chat-in'); const text=String(box.value||'').trim();
+  if(!text || CHAT.busy) return;
+  box.value=''; chatSend(text);
+};
 function brokerView(v){
   const gaps=missingFields();
   return `<div class="card">
@@ -1298,7 +1363,8 @@ function brokerView(v){
       without them.</div></div>`:''}
     <div class="card"><h2>Document set</h2>
       <p class="lede">Grouped by where the requirement comes from. Click View on any row.</p>
-      ${docTable(v)}</div>`;
+      ${docTable(v)}</div>
+    ${chatPanel(v)}`;
 }
 
 function sellerView(v){
@@ -1309,7 +1375,8 @@ function sellerView(v){
       ${progressBar(SELLER_STAGES,DEAL.sellerStage)}</div>
     <div class="banner b-lock">🔒 <div>Selling side only. The buyer's appraisal and lender file are not accessible
       from this account.</div></div>
-    <div class="card"><h2>Your disclosure package</h2>${docTable(v)}</div>`;
+    <div class="card"><h2>Your disclosure package</h2>${docTable(v)}</div>
+    ${chatPanel(v)}`;
 }
 function buyerView(v){
   return `<div class="card">
@@ -1318,7 +1385,8 @@ function buyerView(v){
       ${progressBar(BUYER_STAGES,DEAL.buyerStage)}</div>
     <div class="banner b-lock">🔒 <div>Buying side only. Seller-side prep forms and the listing agreement are not
       accessible from this account.</div></div>
-    <div class="card"><h2>Your file</h2>${docTable(v)}</div>`;
+    <div class="card"><h2>Your file</h2>${docTable(v)}</div>
+    ${chatPanel(v)}`;
 }
 
 const UPLOADS=[
