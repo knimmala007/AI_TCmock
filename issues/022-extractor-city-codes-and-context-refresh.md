@@ -1,5 +1,5 @@
 # 022: Extractor lists city-dependent codes; refresh the form-code notes
-Status: todo | Depends on: 002, 003 | Owner: agent | Size: S
+Status: done | Depends on: 002, 003 | Owner: agent | Size: S
 
 ## What solving this does
 

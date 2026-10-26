@@ -122,13 +122,21 @@ fs.writeFileSync(path.join(root, 'backend', 'fixtures.js'), moduleSource);
 // Reconciliation report: where does each form code appear?
 const docCodes = new Set(docs.map(d => d.code));
 const referenced = new Set(baseForms);
-questions.forEach(q => {
-  (q.fills || []).forEach(c => referenced.add(c));
-  if (typeof q.adds === 'function') {
-    // call adds with every option plus a few probes to collect the codes it can return
-    const probes = (q.options || []).concat(['x', '1947', '1990']);
-    probes.forEach(p => { try { (q.adds(p) || []).forEach(c => referenced.add(c)); } catch (e) {} });
-  }
+// Some `adds` depend on other answers (the city, for a tenant-occupied unit). Probe each
+// question once per city option, with an engine whose `city` answer is that city, so the
+// city-dependent codes are collected too; the plain pass keeps the no-city codes.
+const cityOptions = questions.find(q => q.k === 'city').options;
+const probeSets = [{}].concat(cityOptions.map(city => ({city: {v: city}})));
+probeSets.forEach(answers => {
+  const engine = Rules.createEngine({getAnswers: () => answers, getDeal: () => ({data: {}}), getDocs: () => []});
+  engine.QUESTIONS.forEach(q => {
+    (q.fills || []).forEach(c => referenced.add(c));
+    if (typeof q.adds === 'function') {
+      // call adds with every option plus a few probes to collect the codes it can return
+      const probes = (q.options || []).concat(['x', '1947', '1990']);
+      probes.forEach(p => { try { (q.adds(p) || []).forEach(c => referenced.add(c)); } catch (e) {} });
+    }
+  });
 });
 const report = {
   docs_total: docs.length,
