@@ -5,7 +5,7 @@ Status: todo | Depends on: 023, 029, 031 | Owner: agent | Size: M
 
 The assistant can ask for approval, but only the broker can grant it, with a button. Handing the package to another role is refused until then.
 
-Files: create `backend/approvals.js`, `api/approve.js`, `backend/tests/approvals.test.js` | modify `backend/tools.js`, `index.html` (Approve button) | reference `backend/status.js`
+Files: create `backend/approvals.js`, `api/approve.js`, `backend/tests/approvals.test.js` | modify `backend/tools.js`, `index.html` (Approve button) | reference `backend/status.js`, `backend/repository.js`
 
 ## Scope
 
@@ -19,6 +19,9 @@ Out: The other gated actions (046 to 049).
 3. The approval is recorded per action and no tool the model can call writes it.
 4. The approval is written to the event log.
 5. After approval `hand_off` succeeds.
+6. A successful `hand_off` appends `{from, to, forms, at, approval}` to the deal (ADR 0011), with `approval` the grant's `granted_by` and `granted_at`, and marks that grant consumed (ADR 0007).
+7. The next role sees only the forms released to it and a note of who handed off and when, never the earlier chat.
+8. Release (access) and hand-off (assignment) stay separate. When `to` is the buyer or lender, every form in `forms` must already be released to that role, otherwise `hand_off` is refused. Releasing is ticket 047, so until it exists nothing is released and a hand-off to a buyer or lender is refused.
 
 ## Tests
 

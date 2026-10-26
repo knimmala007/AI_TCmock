@@ -5,7 +5,7 @@ Status: todo | Depends on: 018 | Owner: human | Size: S
 
 The owner states what each role sees for the deal stage, and which fields only a person may attest.
 
-Files: modify the spec, `.claude/CONTEXT.MD` | reference `backend/fixtures.js`, `index.html`
+Files: modify the spec, `.claude/CONTEXT.MD`, `backend/reminders.md` (R4, R8, R19, R20) | reference `backend/fixtures.js`, `index.html`
 
 ## Scope
 
@@ -28,3 +28,9 @@ None (decision).
 ## Notes
 
 Blocks 031, 039, 041.
+
+Decisions are in ADRs 0009 (stages), 0010 (attestation) and 0011 (hand-off). Stale text this ticket must fix, then mark done:
+- spec "one of the six real seller stages" (about line 149), `CONTEXT.MD` line about `get_deal` stages (about line 390) and R4: "the stage for the caller's side".
+- `CONTEXT.MD` Still open item 5 and R8 ("the Lender sees only `APPR`"): `APPR` visibility follows role scope and the buyer financing; the stage drives only the status line.
+- spec and `CONTEXT.MD`: the attestation list, the seller-only rule, and the hand-off record with release (access) kept separate from hand-off (assignment).
+- `CONTEXT.MD` Demo mode: add the limit recorded in ADR 0010.

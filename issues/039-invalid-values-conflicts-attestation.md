@@ -16,7 +16,7 @@ Out: Legal judgment (030).
 
 1. A choice question rejects a value not in its options.
 2. A value contradicting an existing fact returns `FACT_CONFLICT`.
-3. A field on the attestation list is never filled by the assistant.
+3. Only the seller session may save `waterHeater`, `smokeAlarm` and `coDetector`; every other role gets `HUMAN_ATTESTATION_REQUIRED`. Signature blocks are never filled by the assistant (ADR 0010).
 4. A missing fact points to `ask_next_question`.
 
 ## Tests
@@ -29,4 +29,4 @@ handler.
 
 ## Notes
 
-Needs the attestation list from ticket 025.
+The attestation list is decided in ADR 0010. The constant is created in ticket 033 (it needs it to skip the fields) and enforced here.

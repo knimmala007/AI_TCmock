@@ -5,7 +5,7 @@ Status: todo | Depends on: 018 | Owner: human | Size: M
 
 The owner confirms what each tool takes and returns, so the tools can be built without guessing.
 
-Files: modify the spec (Tools), `.claude/CONTEXT.MD` (Still open item 1) | reference `backend/roles.js`
+Files: modify the spec (Tools; use `get_deal`, not "get deal"), `.claude/CONTEXT.MD` (Still open item 1), `docs/adr/0002-guardrails-enforced-in-code.md` (`config.py` to `config.js`; the "Oct 25" / "confirmed Oct 26" dates) | reference `backend/roles.js`
 
 ## Scope
 

@@ -5,7 +5,7 @@ Status: todo | Depends on: 024, 031 | Owner: agent | Size: M
 
 The assistant asks the single most useful unanswered question, chosen by code from the shared rules. The model only phrases it.
 
-Files: modify `backend/tools.js` | create `backend/tests/tools_ask_next.test.js` | reference `rules.js`, `backend/fixtures.js`
+Files: modify `backend/tools.js`, `rules.js` (add the ranking function only), `backend/tests/rules.test.js` | create `backend/tests/tools_ask_next.test.js` | reference `backend/fixtures.js`
 
 ## Scope
 
@@ -18,6 +18,7 @@ Out: Saving the answer (034).
 2. Questions whose conditions are not met are skipped.
 3. When none is left it says so.
 4. The model never chooses the question.
+5. For every role except the seller, `waterHeater`, `smokeAlarm` and `coDetector` are skipped and never counted as candidates (ADR 0010). The list is a constant in `backend/tools.js`, created here and enforced in 039; the browser's `nextQ()` is unchanged.
 
 ## Tests
 
