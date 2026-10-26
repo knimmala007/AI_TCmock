@@ -1,5 +1,5 @@
 # 020: Add a health-check function
-Status: todo | Depends on: 013 | Owner: agent | Size: S
+Status: done | Depends on: 013 | Owner: agent | Size: S
 
 ## What solving this does
 

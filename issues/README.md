@@ -23,7 +23,7 @@
 | 017 | [Stale documentation fixed](017-stale-documentation-fixed.md) | done | 015 | agent |
 | 018 | [Forms with no template are flag-only (decision)](018-untemplated-forms-flag-only.md) | done | 003 | agent |
 | 019 | [Review and commit the work so far](019-review-and-commit-work-so-far.md) | todo | 018 | human |
-| 020 | [Add a health-check function](020-health-check-function.md) | todo | 013 | agent |
+| 020 | [Add a health-check function](020-health-check-function.md) | done | 013 | agent |
 | 021 | [Deploy the health check to a Vercel preview](021-deploy-health-check-to-vercel-preview.md) | todo | 019, 020 | human |
 | 022 | [Extractor lists city-dependent codes; refresh the form-code notes](022-extractor-city-codes-and-context-refresh.md) | todo | 002, 003 | agent |
 | 023 | [Design the approval and lock state shapes](023-design-approval-and-lock-state-shapes.md) | todo | 018 | human |
