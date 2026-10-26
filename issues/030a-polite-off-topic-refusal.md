@@ -1,5 +1,5 @@
 # 030a: Polite off-topic refusal
-Status: todo | Depends on: 027d, 030 | Owner: agent | Size: S
+Status: review pending | Depends on: 027d, 030 | Owner: agent | Size: S
 
 ## What solving this does
 
@@ -30,3 +30,16 @@ handler: scripted fake model. An off-topic turn returns the decline unchanged, c
 ## Notes
 
 The fake model proves the plumbing only. Real behaviour is checked with one off-topic question in the 028a manual run.
+
+## Mutation checks (run, then reverted)
+
+Test file: `backend/tests/off_topic_refusal.test.js`. Each mutation was made in production code, the file was run, and the file was restored with `git checkout`.
+
+| Mutation | Caught by |
+|---|---|
+| `agent_handler.js`: drop the assistant save | the 4 off-topic tests and the deal-question test (thread assertions) |
+| `agent_handler.js`: append text to the reply | the same 5 tests (unchanged-reply assertions) |
+| `agent_loop.js`: run a tool the model did not request | the same 5 tests (tool counter) |
+| `agent_handler.js`: always add a `status` field | the same 5 tests (no-status and exact-keys assertions) |
+
+These tests prove plumbing only. No test can fail if the prompt rule is deleted or reworded; that is checked in the 028a manual run.
