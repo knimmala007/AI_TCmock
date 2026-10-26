@@ -15,6 +15,7 @@ import { redact } from './events.js';
 import { runLoop } from './agent_loop.js';
 import { createModelGate, createTurn } from './model_gate.js';
 import { promptFor } from './prompts.js';
+import { createTools } from './tools.js';
 
 export const RATE_LIMIT_REPLY = 'You are sending messages too quickly. Please wait a minute and try again.';
 
@@ -24,8 +25,10 @@ const json = (status, body, extra = {}) => new Response(JSON.stringify(body), {
 
 export function createAgentHandler({
   callModel, getSession, limiter, dailyCap, eventLog, threads,
-  perMinute = CHAT_PER_MINUTE, newTurnId = () => crypto.randomUUID(), registry,
+  perMinute = CHAT_PER_MINUTE, newTurnId = () => crypto.randomUUID(), registry, repository, seenFields,
 }) {
+  // `registry` is a test seam and is offered as given. Otherwise each turn gets the tools of its role.
+  const tools = repository && seenFields ? createTools({ repository, seenFields }) : null;
   const modelGate = callModel ? createModelGate({ callModel, dailyCap, eventLog }) : null;
 
   return async function POST(req) {
@@ -50,7 +53,9 @@ export function createAgentHandler({
     const history = await threads.recent(scope);
     const turn = createTurn({ sessionId, turnId, role, dealId });
     const r = await runLoop(modelGate, turn, {
-      system: promptFor(role), messages: [...history, { role: 'user', content: message }], registry,
+      system: promptFor(role), messages: [...history, { role: 'user', content: message }],
+      registry: registry ?? (tools ? tools.registry : {}),
+      allowed: registry ? null : (tools ? tools.forRole(turn.role) : []),
     });
     if (r.stopped === 'daily_cap') return json(429, { reply: r.reply, turnId });
     if (r.stopped) return json(200, { reply: r.reply, turnId });

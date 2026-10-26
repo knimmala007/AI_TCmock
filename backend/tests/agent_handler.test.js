@@ -9,7 +9,7 @@ import { createThreadStore } from '../threads.js';
 import { cookieName, sessionFromRequest, signSession } from '../session.js';
 import { createAgentHandler } from '../agent_handler.js';
 import { promptFor } from '../prompts.js';
-import { STUB_TOOL } from '../agent_loop.js';
+import { STUB_TOOL, stubRegistry } from './stub_tool.js';
 import { createAgentEndpoint } from '../../api/agent.js';
 import { THREAD_MESSAGES_KEPT } from '../config.js';
 
@@ -47,6 +47,7 @@ function setup({ replies = [ok('hello')], perMinute = 100, cap = 100, model = tr
     eventLog: createEventLog(store),
     threads,
     perMinute,
+    registry: stubRegistry(),
   });
   return { handler, store, threads, requests: fake.requests };
 }
@@ -57,7 +58,7 @@ const post = (cookie, body = { message: 'hi' }, { url = 'http://x/api/agent', he
   headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}), ...headers },
 });
 
-test('a message gets a plain reply as {reply, turnId}, with the broker prompt and the stub tool', async () => {
+test('a message gets a plain reply as {reply, turnId}, with the broker prompt and the injected test tool', async () => {
   const { handler, requests } = setup({ replies: [ok('Hello there.')] });
   const res = await handler(post(cookieFor('broker')));
   assert.strictEqual(res.status, 200);
