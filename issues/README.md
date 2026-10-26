@@ -25,7 +25,7 @@
 | 019 | [Review and commit the work so far](019-review-and-commit-work-so-far.md) | todo | 018 | human |
 | 020 | [Add a health-check function](020-health-check-function.md) | done | 013 | agent |
 | 021 | [Deploy the health check to a Vercel preview](021-deploy-health-check-to-vercel-preview.md) | todo | 019, 020 | human |
-| 022 | [Extractor lists city-dependent codes; refresh the form-code notes](022-extractor-city-codes-and-context-refresh.md) | todo | 002, 003 | agent |
+| 022 | [Extractor lists city-dependent codes; refresh the form-code notes](022-extractor-city-codes-and-context-refresh.md) | done | 002, 003 | agent |
 | 023 | [Design the approval and lock state shapes](023-design-approval-and-lock-state-shapes.md) | todo | 018 | human |
 | 024 | [Decide the tool signatures](024-decide-tool-signatures.md) | todo | 018 | human |
 | 025 | [Decide stages and attestation fields](025-decide-stages-and-attestation-fields.md) | todo | 018 | human |

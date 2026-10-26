@@ -330,12 +330,15 @@ loader; it is now one module.)
   with a Drive `file` plus `NHD-RPT`, `NHD-STMT`, `EQ-FORM`, `REPAIRS`). The two
   without a signed original are `POOL` and `SOLAR`. The "42 vs 44" is that gap,
   not a data conflict.
-- **Codes the rules produce that have no `DOCS` entry** (13): `BK-RECO`,
-  `BK-SEWER`, `EBMUD`, `HOA`, `HOA-CERT`, `LA-9A`, `LA-GAS`, `LA-RETRO`,
-  `LEASE`, `NEWCON`, `OK-RECO`, `SF-3R`, `SF-EWC` (the app shows them as
-  "form not yet templated"; the agent only flags these, it never fills them).
+- **Codes the rules produce that have no `DOCS` entry** (17): `BK-RECO`,
+  `BK-RENT`, `BK-SEWER`, `EBMUD`, `HOA`, `HOA-CERT`, `LA-9A`, `LA-GAS`,
+  `LA-RETRO`, `LA-RSO`, `LEASE`, `NEWCON`, `OK-RAP`, `OK-RECO`, `SF-3R`,
+  `SF-EWC`, `SF-RENT` (the app shows them as "form not yet templated"; the
+  agent only flags these, it never fills them). `BK-RENT`, `LA-RSO`, `OK-RAP`
+  and `SF-RENT` appear only for a tenant-occupied unit in that city.
   **In `DOCS` but never produced by the rules:**
-  `APPR`, `EQ-FORM`, `HW`, `NHD-RPT`, `NHD-STMT`, `REPAIRS`.
+  `EQ-FORM`, `HW`, `NHD-RPT`, `NHD-STMT`, `REPAIRS` (`APPR` is produced: see
+  "Lender and the appraisal").
 - **Never received:** `permitHistory` and `tenancyStatus`, taken from the
   `UPLOADS` entries still waiting in the Files tab.
 - **`tx_unknown_city`** (Austin, Travis) has no real data. It is a clearly
