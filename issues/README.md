@@ -38,7 +38,7 @@
 | 028a | [One manual real model run](028a-one-manual-real-model-run.md) | todo | 027b, 027c, 028 | human |
 | 029 | [Chat panel in the app](029-chat-panel-in-the-app.md) | todo (029a done: panel; history read open) | 027a | agent |
 | 030 | [No-legal-advice code guard](030-no-legal-advice-guard.md) | todo | 027c | agent |
-| 030a | [Polite off-topic refusal](030a-polite-off-topic-refusal.md) | todo | 027d, 030 | agent |
+| 030a | [Polite off-topic refusal](030a-polite-off-topic-refusal.md) | review pending | 027d, 030 | agent |
 | 031 | [Broker can ask the assistant about the deal (`get_deal`)](031-get-deal-scoped-to-role.md) | done | 024, 025, 027c | agent |
 | 031a | [Buyer-attack handler tests](031a-buyer-attack-handler-tests.md) | todo | 031 | agent |
 | 032 | [Tool-call limits and repeat stop](032-tool-call-limits-and-repeat-stop.md) | closed by 027c; logging moves to 062 | 027c | agent |
