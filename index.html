@@ -20,6 +20,28 @@
   .roles{display:flex;gap:4px;background:#1e293b;padding:4px;border-radius:10px;flex-wrap:wrap}
   .roles button{background:transparent;border:0;color:#94a3b8;padding:6px 13px;border-radius:7px;font:inherit;font-weight:550;cursor:pointer}
   .roles button.on{background:#fff;color:#0f172a}
+  .topnav{display:flex;gap:4px}
+  .topnav button{background:transparent;border:0;color:#cbd5e1;padding:6px 12px;border-radius:7px;font:inherit;font-weight:550;cursor:pointer}
+  .topnav button:hover{background:#1e293b;color:#fff}
+  .topnav button.on{background:#1e293b;color:#fff;box-shadow:inset 0 -2px 0 #818cf8}
+  /* Dev menu: the testing screens, kept out of the main navigation */
+  header.top{position:relative;z-index:20}
+  .dev{position:relative}
+  .dev summary{list-style:none;cursor:pointer;color:#94a3b8;font-size:12px;font-weight:550;padding:6px 10px;
+    border:1px solid #334155;border-radius:7px;user-select:none}
+  .dev summary::-webkit-details-marker{display:none}
+  .dev summary:hover,.dev[open] summary{color:#fff;border-color:#64748b}
+  .dev summary.on{color:#fff;border-color:#818cf8}
+  .devmenu{position:absolute;right:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--line);border-radius:10px;
+    box-shadow:0 10px 30px rgba(15,23,42,.18);padding:6px;min-width:190px;display:flex;flex-direction:column}
+  .devmenu button{background:none;border:0;text-align:left;padding:8px 10px;border-radius:7px;font:inherit;color:var(--ink);cursor:pointer}
+  .devmenu button:hover{background:var(--brand-soft)}
+  .devmenu button.on{font-weight:650;color:var(--brand)}
+  .devmenu small{display:block;color:var(--muted);font-size:11.5px}
+  .dash-hd{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  .dash-title{font-size:22px;margin:0;letter-spacing:-.02em}
+  .dashgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;align-items:start}
+  @media(max-width:900px){.dashgrid{grid-template-columns:1fr}}
   main{max-width:1180px;margin:0 auto;padding:24px 22px 70px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:16px}
   .card h2{font-size:14px;margin:0 0 4px;letter-spacing:-.01em}
@@ -102,6 +124,56 @@
   .pbar>i{display:block;height:100%;background:linear-gradient(90deg,#6366f1,#059669);
     border-radius:99px;transition:width .45s cubic-bezier(.4,0,.2,1)}
   .pnum{font-weight:700;font-size:13px;min-width:38px;text-align:right}
+  /* Full-height page: header at its natural height, main fills the rest */
+  body{display:flex;flex-direction:column;height:100vh}
+  main{flex:1;min-height:0;overflow:auto;width:100%}
+
+  /* Three-column shell (role screens): sidebar · chat · status rail. Each column scrolls on its own. */
+  main.shell{max-width:none;margin:0;padding:0;overflow:hidden;
+    display:grid;grid-template-columns:260px minmax(0,1fr) 280px}
+  .col{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line)}
+  .col:last-child{border-right:0}
+  .col .scroll{flex:1;overflow-y:auto;padding:16px}
+  .col .foot{border-top:1px solid var(--line);padding:12px 16px;display:flex;flex-direction:column;gap:6px;background:var(--panel)}
+  .colhd{font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 10px}
+  .side{background:#f1f5f9}
+  .hist{display:block;width:100%;text-align:left;background:none;border:0;padding:8px 10px;
+    border-radius:8px;font:inherit;color:var(--ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hist:hover{background:#e2e8f0}
+  .hist.on{background:#fff;font-weight:600;box-shadow:0 1px 2px rgba(15,23,42,.06)}
+  .hist small{display:block;color:var(--muted);font-weight:400;font-size:11.5px}
+  .side .foot{background:#f1f5f9}
+  .side .foot button{text-align:left}
+  .side .foot button.on{background:#fff;border-color:var(--brand);color:var(--brand)}
+  .choice.on{border-color:var(--brand);background:var(--brand-soft);color:var(--brand)}
+  .msg-docs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .doclink{font:600 12px/1 ui-monospace,Menlo,monospace;background:var(--ok-soft);color:var(--ok);
+    border:1px solid #a7f3d0;border-radius:6px;padding:5px 8px;cursor:pointer}
+  .doclink:hover{background:var(--ok);color:#fff}
+  .thread{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+  .msg{max-width:80%;padding:10px 14px;border-radius:14px;line-height:1.45}
+  .msg.bot{background:var(--panel);border:1px solid var(--line);align-self:flex-start;border-bottom-left-radius:4px}
+  .msg.me{background:var(--brand);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+  .msg .why{color:var(--muted);font-size:12px;margin-top:4px}
+  .msg-note{align-self:flex-end;font-size:11.5px;color:var(--muted);margin-top:-4px}
+  .composer{max-width:760px;width:100%;margin:0 auto}
+  .composer .choices,.composer .docask{margin-top:0}
+  .composer .fillbox{margin-top:0!important}
+  .composer .fillbox input{font-size:14px;padding:10px 12px;border-radius:10px}
+  .vtrack{display:flex;flex-direction:column}
+  .vstep{display:flex;gap:10px;position:relative;padding-bottom:22px}
+  .vstep:not(:last-child)::before{content:"";position:absolute;left:11px;top:26px;bottom:2px;width:2px;background:var(--line)}
+  .vstep.done::before{background:var(--ok)}
+  .vstep .dot{width:24px;height:24px;border-radius:50%;flex:none;display:grid;place-items:center;
+    font-size:11px;font-weight:700;background:#fff;border:2px solid var(--line);color:var(--muted)}
+  .vstep.done .dot{background:var(--ok);border-color:var(--ok);color:#fff}
+  .vstep.now .dot{border-color:var(--brand);color:var(--brand)}
+  .vstep .lbl{padding-top:2px}
+  .vstep.now .lbl{font-weight:650}
+  .vstep:not(.done):not(.now) .lbl{color:var(--muted)}
+  @media (max-width:1000px){ main.shell{grid-template-columns:230px minmax(0,1fr)} .rail{display:none} }
+  @media (max-width:680px){ main.shell{grid-template-columns:1fr} .side{display:none} }
+
   .agentgrid{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;align-items:start}
   @media(max-width:900px){.agentgrid{grid-template-columns:1fr}}
   .qcard{background:#fff;border:2px solid var(--brand);border-radius:12px;padding:20px 22px}
@@ -226,9 +298,11 @@
 <body>
 <header class="top">
   <h1>AI Real Estate Agent</h1>
-  <span class="tag">real package · 118 Cottage Grove Ave</span>
+  <span class="tag">real package · 118 Cottage Grove Ave · UI v2</span>
+  <nav class="topnav" id="topnav"></nav>
   <span class="spacer"></span>
   <div class="roles" id="roles"></div>
+  <details class="dev" id="dev"></details>
 </header>
 <main id="app"></main>
 <div id="modal"></div>
@@ -292,7 +366,7 @@ const DEAL_VARIABLE = ['address','city','county','zip','apn','type','yearBuilt',
 function blankDeal(){
   Object.assign(DEAL, JSON.parse(JSON.stringify(DEAL_REFERENCE)));
   DEAL_VARIABLE.forEach(k=>{ DEAL[k] = ''; });
-  DEAL.data = {}; DEAL.sellerStage = 0; DEAL.buyerStage = 0; DEAL.tcRun = false;
+  DEAL.data = {}; DEAL.sellerStage = 0; DEAL.buyerStage = 0; DEAL.lenderStage = 0; DEAL.tcRun = false;
 }
 blankDeal();
 
@@ -455,6 +529,7 @@ const VIEWERS = {
   broker:{role:'broker',id:'b1',name:'Listing Agent',label:'Broker'},
   seller:{role:'seller',id:'s1',name:'Seller Corp.',label:'Seller'},
   buyer :{role:'buyer', id:'u1',name:'Buyer',label:'Buyer'},
+  lender:{role:'lender',id:'l1',name:'Lender',label:'Lender'},
   files :{role:'broker',id:'b1',name:'Listing Agent',label:'Files'},
   audit :{role:'audit', id:'a', name:'Audit',label:'Audit'},
   eval  :{role:'audit', id:'e', name:'Evaluation',label:'Evaluation'},
@@ -464,11 +539,13 @@ function canAccess(v,d){
   if(v.role==='broker') return side==='seller'||side==='shared';
   if(v.role==='seller') return side==='seller'||side==='shared';
   if(v.role==='buyer')  return side==='buyer' ||side==='shared';
+  if(v.role==='lender') return side==='buyer' ||side==='shared';   // the loan file: appraisal + shared transaction docs
   return false;
 }
 const visibleDocs = v => activeDocs().filter(d=>canAccess(v,d));
 
-let view='agent', openRef=null;
+let view='broker', openRef=null;
+let role='broker';   // the last role picked in the top bar — the Dashboard shows the deal from this side
 const $ = s=>document.querySelector(s);
 const fmtD = d=> d? new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
 
@@ -994,12 +1071,30 @@ window.answerQ = function(k, forced){
   if(!nextQ()) INTAKE.done = true;
   render();
 };
-window.resetIntake = ()=>{ INTAKE.answers={}; INTAKE.log=[]; INTAKE.done=false; blankDeal(); render(); };
+window.resetIntake = ()=>{ INTAKE.answers={}; INTAKE.log=[]; INTAKE.done=false; blankDeal(); activeCase=null; render(); };
 window.prefillIntake = ()=>{  // load the known Cottage Grove facts to jump ahead
   [['sellerType','Corporation or LLC'],['seller','Seller Corp.'],['signer','Authorized Officer, President'],
    ['address','118 Cottage Grove Avenue'],['city','San José'],['apn','434-24-002'],['yearBuilt','1947'],
    ['propertyType','Single-family resale']].forEach(([k,v])=>answerQ(k,v));
 };
+
+// The answer control for one question — shared by the Agent card and the chat composer.
+function qInput(q){
+  if(q.type==='choice'){
+    return `<div class="choices">${q.options.map(o=>
+      `<button class="choice" onclick="answerQ('${q.k}',${JSON.stringify(o).replace(/"/g,'&quot;')})">${o}</button>`).join('')}</div>`;
+  }
+  if(q.type==='doc'){
+    return `<div class="docask">
+      <div><b>${q.docLabel}</b><div class="src">Supplies in one step: ${q.supplies.join(' · ')}</div></div>
+      <button class="act" onclick="answerQ('${q.k}','Received — ${q.supplies.length} values extracted')">Upload / mark received</button>
+      <button class="ghost" onclick="answerQ('${q.k}','Ordered — pending vendor')">Order it</button>
+    </div>`;
+  }
+  return `<div class="fillbox" style="margin-top:10px">
+    <input id="in-${q.k}" placeholder="${esc(q.ph||'')}" onkeydown="if(event.key==='Enter')answerQ('${q.k}')">
+    <button class="act" onclick="answerQ('${q.k}')">Save</button></div>`;
+}
 
 function agentView(){
   const p = intakeProgress(), q = nextQ();
@@ -1031,21 +1126,7 @@ function agentView(){
       <button class="act" onclick="resetIntake()">Start over</button>`;
   } else {
     const feeds = (q.fills||[]).filter(c=>p.forms.includes(c));
-    let input;
-    if(q.type==='choice'){
-      input = `<div class="choices">${q.options.map(o=>
-        `<button class="choice" onclick="answerQ('${q.k}',${JSON.stringify(o).replace(/"/g,'&quot;')})">${o}</button>`).join('')}</div>`;
-    } else if(q.type==='doc'){
-      input = `<div class="docask">
-        <div><b>${q.docLabel}</b><div class="src">Supplies in one step: ${q.supplies.join(' · ')}</div></div>
-        <button class="act" onclick="answerQ('${q.k}','Received — ${q.supplies.length} values extracted')">Upload / mark received</button>
-        <button class="ghost" onclick="answerQ('${q.k}','Ordered — pending vendor')">Order it</button>
-      </div>`;
-    } else {
-      input = `<div class="fillbox" style="margin-top:10px">
-        <input id="in-${q.k}" placeholder="${esc(q.ph||'')}" onkeydown="if(event.key==='Enter')answerQ('${q.k}')">
-        <button class="act" onclick="answerQ('${q.k}')">Save</button></div>`;
-    }
+    const input = qInput(q);
     card = `<div class="qcard">
       <div class="qgroup">${q.g} · question ${p.answered+1} of ${p.total}</div>
       <div class="qtext">${q.q}</div>
@@ -1407,11 +1488,32 @@ function labView(){
 /* ==========================================================================
    VIEWS
    ========================================================================== */
+const ROLE_VIEWS = ['broker','seller','buyer','lender'];
+const DEV_VIEWS  = {lab:'Run the scripted test cases', agent:'Original intake screen', files:'Source documents',
+                    audit:'Who can see which document', eval:'Evaluation results'};
+
+// Top bar: Dashboard / Chat on the left, the role switcher on the right, testing screens tucked into "Dev".
 function renderRoles(){
-  $('#roles').innerHTML = Object.entries(VIEWERS).map(([k,v])=>
-    `<button class="${k===view?'on':''}" onclick="setView('${k}')">${v.label}</button>`).join('');
+  $('#topnav').innerHTML = `
+    <button class="${view==='dashboard'?'on':''}" onclick="setView('dashboard')">Dashboard</button>
+    <button class="${SHELL_VIEWS.includes(view)?'on':''}" onclick="openChat()">Chat</button>`;
+  $('#roles').innerHTML = ROLE_VIEWS.map(k=>
+    `<button class="${k===role?'on':''}" onclick="pickRole('${k}')">${VIEWERS[k].label}</button>`).join('');
+  const inDev = view in DEV_VIEWS;
+  $('#dev').innerHTML = `<summary class="${inDev?'on':''}">${inDev?'Dev · '+VIEWERS[view].label.replace('▶ ',''):'Dev'} ▾</summary>
+    <div class="devmenu">${Object.entries(DEV_VIEWS).map(([k,d])=>
+      `<button class="${k===view?'on':''}" onclick="setView('${k}')">${VIEWERS[k].label}<small>${d}</small></button>`).join('')}</div>`;
+  $('#dev').open = false;   // close the menu after a choice
 }
-window.setView = v=>{view=v;render();};
+window.setView = v=>{ view=v; if(ROLE_VIEWS.includes(v)) role=v; render(); };
+// Switching role keeps you on the Dashboard if you're there; otherwise it opens that role's chat.
+window.pickRole = r=>{ role=r; if(view!=='dashboard') view=r; render(); };
+// From the Dashboard: jump into the chat screen with a given middle panel (chat, messages, workflow…)
+window.goShell = c=>{ view=role; center=c; render(); };
+// (A function, not onclick="setView(role)": inside an onclick, `role` means the button's own ARIA role.)
+window.openChat = ()=>setView(role);
+// close the Dev menu when clicking anywhere else
+document.addEventListener('click', e=>{ const d=$('#dev'); if(d && d.open && !d.contains(e.target)) d.open=false; });
 
 function progressBar(stages,idx){
   return `<div class="track">${stages.map((s,i)=>{
@@ -1421,6 +1523,13 @@ function progressBar(stages,idx){
 }
 const SELLER_STAGES=['Listing Signed','Disclosures','Offer Accepted','Inspection','Escrow','Closed'];
 const BUYER_STAGES =['Pre-Approval','Offer','Accepted','Inspection','Loan & Appraisal','Escrow','Closed'];
+const LENDER_STAGES=['Application','Pre-Approval','Appraisal','Underwriting','Clear to Close','Funded'];
+// the status steps and current step for whichever role is looking
+function stagesFor(v){
+  if(v.role==='buyer')  return [BUYER_STAGES,  DEAL.buyerStage];
+  if(v.role==='lender') return [LENDER_STAGES, DEAL.lenderStage||0];
+  return [SELLER_STAGES, DEAL.sellerStage];
+}
 
 function docTable(v){
   const docs=visibleDocs(v);
@@ -1492,6 +1601,15 @@ function buyerView(v){
       accessible from this account.</div></div>
     <div class="card"><h2>Your file</h2>${docTable(v)}</div>`;
 }
+function lenderView(v){
+  return `<div class="card">
+      <div class="deal-hd"><div><h3>${esc(DEAL.address || 'New transaction — not started')}</h3>
+        <div class="addr">${esc(DEAL.city)}, CA ${esc(DEAL.zip)}</div></div></div>
+      ${progressBar(LENDER_STAGES,DEAL.lenderStage||0)}</div>
+    <div class="banner b-lock">🔒 <div>Loan file only. The seller's disclosures and the listing agreement are not
+      accessible from this account.</div></div>
+    <div class="card"><h2>Loan file</h2>${docTable(v)}</div>`;
+}
 
 const UPLOADS=[
   {n:'[RLA] Residential Listing Agreement',f:'Seller / Glide',s:'ok',at:'2025-10-29',p:['seller','listingAgent'],code:'RLA'},
@@ -1526,7 +1644,7 @@ function filesView(){
 
 function auditView(){
   const probes=['TDS','SJ-TREE','APPR','WFA'].map(c=>DOCS.find(d=>d.code===c));
-  const vs=[['Seller',VIEWERS.seller],['Buyer',VIEWERS.buyer],['Listing broker',VIEWERS.broker]];
+  const vs=[['Seller',VIEWERS.seller],['Buyer',VIEWERS.buyer],['Lender',VIEWERS.lender],['Listing broker',VIEWERS.broker]];
   return `<div class="card"><h2>Permission isolation audit</h2>
     <p class="lede">Access decided by <code>canAccess(viewer, document)</code> before render.</p>
     <table><thead><tr><th>Viewer</th>${probes.map(p=>`<th>${p.code}<div style="font-weight:400;text-transform:none">${p.side}</div></th>`).join('')}<th>Docs visible</th></tr></thead>
@@ -1590,7 +1708,7 @@ function evalView(){
 
 /* ---- document viewer ---- */
 window.openDoc = code=>{
-  const d=docByCode(code), v=VIEWERS[view];
+  const d=docByCode(code), v=VIEWERS[view]||VIEWERS[role];   // Dashboard isn't a viewer — use the chosen role
   if(!d) return;
   if(v.role!=='audit' && !canAccess(v,d)){ alert('Blocked by the permission layer.'); return; }
   openRef=code; paintDoc();
@@ -1655,8 +1773,237 @@ window.docTab = which=>{
 };
 document.addEventListener('keydown',e=>{ if(e.key==='Escape')closeDoc(); });
 
+/* ==========================================================================
+   THREE-COLUMN SHELL — role screens: chat history · chat · status rail
+   ========================================================================== */
+const SHELL_VIEWS = ['broker','seller','buyer','lender'];
+let center = 'chat';   // what the middle column shows: chat | workflow | messages | transactions
+window.setCenter = c=>{ center=c; render(); };
+
+function vProgress(stages, idx){
+  return `<div class="vtrack">${stages.map((s,i)=>{
+    const c = i<idx?'done':(i===idx?'now':'');
+    return `<div class="vstep ${c}"><div class="dot">${i<idx?'✓':i+1}</div><div class="lbl">${s}</div></div>`;
+  }).join('')}</div>`;
+}
+
+function sidebarCol(){
+  return `<aside class="col side">
+    <div class="scroll">
+      <div class="colhd">Chats</div>
+      <button class="hist ${center==='chat'?'on':''}" onclick="setCenter('chat')">
+        ${esc(DEAL.address || 'New transaction')}<small>${INTAKE.log.length} of ${intakeProgress().total} answered</small></button>
+    </div>
+    <div class="foot">
+      <button class="ghost ${center==='messages'?'on':''}" onclick="setCenter('messages')">✉ Messages</button>
+      <button class="ghost ${center==='transactions'?'on':''}" onclick="setCenter('transactions')">▤ View transactions</button>
+    </div></aside>`;
+}
+
+function chatCol(){
+  const q = nextQ();
+  const bubbles = INTAKE.log.map(e=>`<div class="msg bot">${e.q}</div><div class="msg me">${esc(e.v)}</div>
+    ${e.filled.length?`<div class="msg-note">Filled ${e.filled.length} form${e.filled.length===1?'':'s'}${e.added.length?` · added ${e.added.join(', ')}`:''}</div>`:''}`).join('');
+  const intro = `<div class="msg bot">Hi — I'll collect everything the disclosure package needs, one question at a
+    time. Each answer fills every form that uses it.</div>`;
+  const last = q ? `<div class="msg bot">${q.q}<div class="why">${q.why}</div></div>`
+                 : `<div class="msg bot">That's everything — the package is complete.</div>`;
+  const composer = q ? qInput(q)
+    : `<button class="act" onclick="resetIntake()">Start over</button>`;
+  return `<section class="col">
+    <div class="scroll" id="chatScroll"><div class="thread">${intro}${bubbles}${last}</div></div>
+    <div class="foot"><div class="composer">${composer}</div></div>
+  </section>`;
+}
+
+function centerCol(v){
+  if(center==='chat') return chatCol();
+  if(center==='messages') return messagesCol(v);   // has its own pinned reply box, so it builds its own column
+  const back = `<button class="ghost" onclick="setCenter('chat')" style="margin-bottom:14px">← Back to chat</button>`;
+  const body = center==='workflow' ? (v.role==='buyer' ? buyerView(v) : v.role==='seller' ? sellerView(v)
+                                    : v.role==='lender' ? lenderView(v) : brokerView(v))
+             : transactionsView(v);
+  return `<section class="col"><div class="scroll">${back}${body}</div></section>`;
+}
+
+function railCol(v){
+  return `<aside class="col rail">
+    <div class="scroll"><div class="colhd">Status</div>
+      ${vProgress(...stagesFor(v))}</div>
+    <div class="foot"><button class="act" onclick="setCenter('workflow')">View detailed workflow →</button></div>
+  </aside>`;
+}
+
+/* ---------- Transactions screen ---------- */
+let activeCase = null;   // which sample deal is loaded in the chat (null = your own deal)
+
+// Load a sample deal from the Test Lab into the chat by answering its questions automatically.
+// The app holds one deal at a time, so this replaces whatever was in the chat.
+window.loadCase = id=>{
+  const C = CASES.find(c=>c.id===id);
+  resetIntake();
+  let q, guard=0;
+  while((q = nextQ()) && C.a[q.k]!==undefined && guard++<500) answerQ(q.k, C.a[q.k]);
+  activeCase = id;
+  THREADS.forEach(t=>t.msgs=[]);   // a different deal has its own conversations
+  goShell('chat');                 // works from the Dashboard too, not just the chat screen
+};
+
+function transactionsView(v){
+  const p = intakeProgress(), [stages, idx] = stagesFor(v);
+
+  // the deal that's open in the chat right now
+  const current = `<tr>
+      <td><div><b>${esc(DEAL.address || 'New transaction')}</b></div>
+          <div class="doccode">${activeCase ? 'Sample case' : 'Your deal'} · open now</div></td>
+      <td>${stages[idx]}</td>
+      <td>${p.ready} / ${p.forms.length}</td>
+      <td style="text-align:right"><button class="act" onclick="goShell('chat')">Open</button></td>
+    </tr>`;
+
+  // one row per Test Lab sample deal — broker only; seller and buyer see just their own deal
+  const samples = v.role!=='broker' ? [] : CASES
+    .filter(c=>c.id!==activeCase)
+    .map(c=>`<tr>
+      <td><div>${esc(c.a.address)}, ${esc(c.a.city)}</div><div class="doccode">${esc(c.sub)}</div></td>
+      <td style="color:var(--muted)">Not loaded</td>
+      <td style="color:var(--muted)">—</td>
+      <td style="text-align:right"><button class="ghost" onclick="loadCase('${c.id}')">Open</button></td>
+    </tr>`);
+
+  return `<div class="card"><h2>Transactions</h2>
+    <p class="lede">Every deal you're working on. Open one to continue its chat.</p>
+    <table>
+      <thead><tr><th>Address</th><th>Stage</th><th>Forms ready</th><th></th></tr></thead>
+      <tbody>${current}${samples.join('')}</tbody>
+    </table></div>`;
+}
+
+/* ---------- Messages screen ---------- */
+// One thread per party. `sides` = which roles may see it (same isolation as the documents);
+// `name` = what each side calls the other person.
+const THREADS = [
+  {id:'agent',  sides:['broker','seller','buyer','lender'],
+   name:{broker:'AI coordinator', seller:'AI coordinator', buyer:'AI coordinator', lender:'AI coordinator'}, msgs:[]},
+  {id:'seller', sides:['broker','seller'], name:{broker:'Seller', seller:'Listing agent'}, msgs:[]},
+  {id:'buyer',  sides:['broker','buyer'],  name:{broker:"Buyer's agent", buyer:'Listing agent'}, msgs:[]},
+  {id:'lender', sides:['buyer','lender'],  name:{buyer:'Lender', lender:'Buyer'}, msgs:[]},
+  {id:'escrow', sides:['broker','lender'], name:{broker:'Escrow officer', lender:'Escrow officer'}, msgs:[]},
+];
+let openThread = 'agent', msgSeq = 0;   // msgSeq orders messages across threads (newest = highest)
+window.pickThread = id=>{ openThread=id; render(); };
+window.sendMsg = ()=>{
+  const el=$('#msg-in'), text=el && el.value.trim(); if(!text) return;
+  THREADS.find(t=>t.id===openThread).msgs.push({from:VIEWERS[view].role, text, at:++msgSeq});
+  render();
+};
+
+// The AI coordinator's messages are worked out from the live deal every time, so they never go stale.
+function agentMsgs(v){
+  const docs = visibleDocs(v), p = intakeProgress();
+  if(!INTAKE.log.length) return [`No forms started yet. Answer the questions in the chat and I'll post updates
+    here as each form is ready.`];
+  const out = [];
+  const ready = docs.filter(d=>docState(d).status==='ready');
+  const open  = docs.filter(d=>docState(d).status!=='ready');
+  out.push(`Progress: <b>${p.answered} of ${p.total}</b> questions answered · <b>${ready.length} of ${docs.length}</b> of your documents ready.`);
+  if(ready.length) out.push(`✓ Ready to review and sign:<div class="msg-docs">${ready.map(d=>
+    `<button class="doclink" onclick="openDoc('${d.code}')">${d.code}</button>`).join('')}</div>`);
+  const gaps = missingFields();
+  if(gaps.length) out.push(`⚠ Still missing: <b>${gaps.map(g=>esc(FIELDS[g]||g)).join(', ')}</b>.
+    These can't be filled from the chat — someone needs to supply them.`);
+  if(open.length && nextQ()) out.push(`${open.length} document(s) are still waiting on answers. Next question in the
+    chat: “${nextQ().q}”`);
+  return out;
+}
+
+function messagesCol(v){
+  const threads = THREADS.filter(t=>t.sides.includes(v.role));
+  if(!threads.find(t=>t.id===openThread)) openThread = threads[0].id;
+  const t = threads.find(x=>x.id===openThread);
+  const tabs = threads.map(x=>`<button class="choice ${x.id===openThread?'on':''}" onclick="pickThread('${x.id}')">
+    ${x.name[v.role]}${x.msgs.length?` <span class="doccode">${x.msgs.length}</span>`:''}</button>`).join('');
+  const bubbles = t.id==='agent'
+    ? agentMsgs(v).map(m=>`<div class="msg bot">${m}</div>`).join('')
+    : (t.msgs.length ? t.msgs.map(m=> m.from===v.role
+        ? `<div class="msg me">${esc(m.text)}</div>`
+        : `<div class="msg bot"><div class="doccode">${t.name[v.role]}</div>${esc(m.text)}</div>`).join('')
+      : `<div class="note" style="text-align:center">No messages with ${t.name[v.role]} yet.</div>`);
+  const reply = t.id==='agent'
+    ? `<div class="note">The AI coordinator posts updates automatically — answer it in the chat.</div>`
+    : `<div class="fillbox composer"><input id="msg-in" placeholder="Message ${t.name[v.role]}…"
+         onkeydown="if(event.key==='Enter')sendMsg()"><button class="act" onclick="sendMsg()">Send</button></div>`;
+  return `<section class="col">
+    <div class="scroll" id="chatScroll">
+      <button class="ghost" onclick="setCenter('chat')" style="margin-bottom:14px">← Back to chat</button>
+      <div class="thread"><h2 style="margin:0">Messages</h2><div class="choices" style="margin:0 0 6px">${tabs}</div>${bubbles}</div>
+    </div>
+    <div class="foot">${reply}</div>
+  </section>`;
+}
+
+/* ---------- Dashboard screen ---------- */
+function dashboardView(v){
+  const p = intakeProgress(), [stages, idx] = stagesFor(v), q = nextQ();
+  const docs = visibleDocs(v);
+  const ready   = docs.filter(d=>docState(d).status==='ready');
+  const waiting = docs.filter(d=>docState(d).status!=='ready');
+  const gaps = (v.role==='broker'||v.role==='seller') ? missingFields() : [];   // the gaps are in the seller's forms
+  const threads = THREADS.filter(t=>t.sides.includes(v.role));
+  const recent = threads.flatMap(t=>t.msgs.map(m=>({t,m}))).sort((a,b)=>b.m.at-a.m.at).slice(0,4);
+
+  const attention = [
+    q ? `<div class="kv"><span>Next question: <b style="color:var(--ink)">${q.q}</b></span>
+          <button class="ghost" onclick="goShell('chat')">Answer</button></div>` : '',
+    gaps.length ? `<div class="kv"><span>⚠ Missing: ${gaps.map(g=>esc(FIELDS[g]||g)).join(', ')}</span></div>` : '',
+    ...waiting.slice(0,6).map(d=>`<div class="kv"><span><span class="doccode">${d.code}</span> ${d.name}</span>
+          <button class="ghost" onclick="openDoc('${d.code}')">View</button></div>`),
+  ].filter(Boolean).join('');
+
+  return `<div class="dash-hd">
+      <div><h2 class="dash-title">Dashboard</h2>
+        <div class="lede" style="margin:0">Viewing as <b>${VIEWERS[v.role].label}</b> ·
+          ${esc(DEAL.address || 'No transaction started yet')}</div></div>
+      <button class="act" onclick="goShell('chat')">${q ? 'Continue chat →' : 'Open chat →'}</button>
+    </div>
+    <div class="metrics" style="margin-bottom:16px">
+      <div class="metric"><b>${stages[idx]}</b><span>Current stage · step ${idx+1} of ${stages.length}</span></div>
+      <div class="metric"><b>${p.answered}/${p.total}</b><span>Intake questions answered</span></div>
+      <div class="metric"><b>${ready.length}/${docs.length}</b><span>Your documents ready</span></div>
+      <div class="metric"><b>${threads.reduce((n,t)=>n+t.msgs.length,0)}</b><span>Messages in your threads</span></div>
+    </div>
+    <div class="dashgrid">
+      <div class="card"><h2>Status</h2>${progressBar(stages, idx)}
+        <button class="ghost" onclick="goShell('workflow')" style="margin-top:12px">View detailed workflow →</button></div>
+      <div class="card"><h2>Needs attention</h2>
+        ${attention || '<p class="lede" style="margin:0">Nothing waiting — every document you can see is ready.</p>'}</div>
+      <div class="card"><h2>Recent messages</h2>
+        ${recent.length ? recent.map(({t,m})=>`<div class="kv"><span><b style="color:var(--ink)">${
+            m.from===v.role ? 'You → '+t.name[v.role] : t.name[v.role]}</b> ${esc(m.text)}</span></div>`).join('')
+          : '<p class="lede" style="margin:0">No messages yet.</p>'}
+        <button class="ghost" onclick="goShell('messages')" style="margin-top:12px">Open messages →</button></div>
+      <div class="card"><h2>Documents</h2>
+        ${ready.length ? `<div class="msg-docs" style="margin:0">${ready.map(d=>
+            `<button class="doclink" onclick="openDoc('${d.code}')">${d.code}</button>`).join('')}</div>`
+          : '<p class="lede" style="margin:0">No documents ready yet.</p>'}
+        <p class="note">${ready.length} ready · ${waiting.length} still waiting on answers.</p></div>
+    </div>
+    ${transactionsView(v)}`;
+}
+
 function render(){
+  if(SHELL_VIEWS.includes(view)) role = view;   // keep the switcher in step when other code changes the view
   renderRoles();
+  if(view==='dashboard'){ $('#app').className=''; $('#app').innerHTML = dashboardView(VIEWERS[role]); return; }
+  const shell = SHELL_VIEWS.includes(view) && !RUN.playing;
+  $('#app').className = shell ? 'shell' : '';
+  if(shell){
+    const v = VIEWERS[view];
+    $('#app').innerHTML = sidebarCol() + centerCol(v) + railCol(v);
+    const s = $('#chatScroll'); if(s) s.scrollTop = s.scrollHeight;   // keep the newest message in view
+    const inp = $('.composer input'); if(inp) inp.focus();
+    return;
+  }
   const v=VIEWERS[view];
   // While the runner is actually playing it takes over the screen: the step log on top,
   // and underneath it the live view the runner just drove the app to. Once it stops,
