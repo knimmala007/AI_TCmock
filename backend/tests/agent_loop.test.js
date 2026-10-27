@@ -95,7 +95,7 @@ test('every model request in the loop is logged by modelGate', async () => {
   const { handler, store } = setup(uses(ping('t1', 'a')), uses(ping('t2', 'b')), ok('done'));
   const { turnId } = await (await handler(post(cookieFor('buyer')))).json();
   const types = store.rows.filter(r => r.turn_id === turnId).map(r => r.event_type);
-  assert.deepStrictEqual(types, Array(3).fill(['model_call_start', 'model_call_end']).flat());
+  assert.deepStrictEqual(types.filter(t => t.startsWith('model_')), Array(3).fill(['model_call_start', 'model_call_end']).flat());
 });
 
 test('tool_result messages are not saved: only the user message and the final reply', async () => {
@@ -256,4 +256,66 @@ test('role, deal and session come from the session only: body, tool args and too
   assert.strictEqual(second.content, STUB_TEXT);
   assert.strictEqual((await saved(threads, 'seller')).length, 2);
   assert.strictEqual((await saved(threads, 'broker')).length, 0);
+});
+
+const eventsOf = (store, type) => store.rows.filter(r => r.event_type === type);
+const refusals = store => eventsOf(store, 'turn_refused');
+
+test('every tool call logs tool_start then tool_end with name, id, counts, role and deal, and no arguments or result', async () => {
+  const { handler, store } = setup(uses(ping('t1', 'SECRET-ARG-VALUE')), ok('done'));
+  const { turnId } = await (await handler(post(cookieFor('seller')))).json();
+  const rows = store.rows.filter(r => r.turn_id === turnId && r.event_type.startsWith('tool_'));
+  assert.deepStrictEqual(rows.map(r => r.event_type), ['tool_start', 'tool_end']);
+  assert.deepStrictEqual(rows[0].payload, { tool: STUB_TOOL.name, tool_use_id: 't1' });
+  assert.deepStrictEqual(rows[1].payload, { tool: STUB_TOOL.name, tool_use_id: 't1', is_error: false, result_chars: STUB_TEXT.length });
+  for (const r of rows) assert.deepStrictEqual([r.role, r.session_id, r.transaction_id], ['seller', 's-1', DEAL]);
+  const raw = JSON.stringify(rows);
+  assert.ok(!raw.includes('SECRET-ARG-VALUE') && !raw.includes(STUB_TEXT));
+});
+
+test('tool errors are logged too (unknown tool, bad arguments) without the invented name or the error text', async () => {
+  const { handler, store } = setup(uses(use('u', 'drop_tables', {}), use('b', STUB_TOOL.name, { nope: 1 })), ok('done'));
+  await handler(post(cookieFor('buyer')));
+  const ends = eventsOf(store, 'tool_end');
+  assert.deepStrictEqual(ends.map(r => [r.payload.tool, r.payload.is_error]), [['unknown_tool', true], [STUB_TOOL.name, true]]);
+  assert.ok(!JSON.stringify(store.rows.filter(r => r.event_type.startsWith('tool_'))).includes('drop_tables'));
+});
+
+test('the 21st tool call logs one turn_refused tool_call_limit with the session role and deal, and runs no tool', async () => {
+  const batches = Array.from({ length: 4 }, (_, b) => uses(...Array.from({ length: 5 }, (_, i) => ping(`t${b}-${i}`, `${b}-${i}`))));
+  const { handler, store } = setup(...batches, uses(ping('t21', 'last')), ok('never'));
+  await handler(post(cookieFor('lender')));
+  assert.strictEqual(refusals(store).length, 1);
+  const [row] = refusals(store);
+  assert.deepStrictEqual(row.payload, { reason: 'tool_call_limit', tool_calls: TOOL_CALLS_PER_TURN + 1 });
+  assert.deepStrictEqual([row.role, row.session_id, row.transaction_id], ['lender', 's-1', DEAL]);
+  assert.strictEqual(eventsOf(store, 'tool_start').length, TOOL_CALLS_PER_TURN);
+});
+
+test('the third identical call logs one turn_refused repeat_call with the session role and deal', async () => {
+  const { handler, store } = setup(uses(ping('a', 'same')), uses(ping('b', 'same')), uses(ping('c', 'same')), ok('never'));
+  await handler(post(cookieFor('broker')));
+  assert.strictEqual(refusals(store).length, 1);
+  const [row] = refusals(store);
+  assert.deepStrictEqual(row.payload, { reason: 'repeat_call', tool: STUB_TOOL.name });
+  assert.deepStrictEqual([row.role, row.session_id, row.transaction_id], ['broker', 's-1', DEAL]);
+  assert.strictEqual(eventsOf(store, 'tool_start').length, 2);
+});
+
+test('the call limit, through the handler, logs one turn_refused call_limit and no extra model_call_start', async () => {
+  const replies = Array.from({ length: MODEL_CALLS_PER_TURN }, (_, i) => uses(ping(`t${i}`, `topic${i}`)));
+  const { handler, store } = setup(...replies);
+  await handler(post(cookieFor('broker')));
+  assert.deepStrictEqual(refusals(store).map(r => r.payload.reason), ['call_limit']);
+  assert.strictEqual(eventsOf(store, 'model_call_start').length, MODEL_CALLS_PER_TURN);
+});
+
+test('a distinctive string in tool arguments is in no tool_start, tool_end or turn_refused event', async () => {
+  const MARK = 'ZQ-BUYER-QUESTION-7731';
+  const { handler, store } = setup(uses(ping('t1', MARK)), uses(ping('t2', MARK)), uses(ping('t3', MARK)), ok('never'));
+  await handler(post(cookieFor('buyer')));
+  const rows = store.rows.filter(r => ['tool_start', 'tool_end', 'turn_refused'].includes(r.event_type));
+  assert.ok(eventsOf(store, 'tool_start').length > 0 && eventsOf(store, 'tool_end').length > 0 && refusals(store).length > 0);
+  assert.ok(!JSON.stringify(rows).includes(MARK));
+  assert.ok(!JSON.stringify(rows).includes(STUB_TEXT)); // nor the result text
 });

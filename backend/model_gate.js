@@ -8,7 +8,8 @@
 //   1. per-turn count: the call after MODEL_CALLS_PER_TURN is refused (the daily cap is not taken)
 //   2. dailyCap.take(): when it says no, the model is not called
 //   3. logEvent model_call_start   4. callModel   5. validate the result   6. logEvent model_call_end
-// A brake returns { stopped, reply } with a plain message; it never throws.
+// A brake logs one turn_refused event (reason code only, no model_call_start) and returns { stopped, reply }
+// with a plain message; it never throws.
 // A call returns { stopped: null, result }. logEvent redacts keys from every payload.
 import { MODEL_CALLS_PER_TURN } from './config.js';
 import { validateModelResult } from './model_interface.js';
@@ -32,10 +33,18 @@ export function createModelGate({ callModel, dailyCap, eventLog, perTurn = MODEL
   return async function modelGate(turn, { system, tools, messages }) {
     if (!callsMade.has(turn)) throw new Error('modelGate needs a turn made by createTurn');
     const n = callsMade.get(turn) + 1;
-    if (n > perTurn) return { stopped: 'call_limit', reply: CALL_LIMIT_REPLY };
+    const refuse = reason =>
+      eventLog.logEvent(turn.sessionId, turn.turnId, turn.role, turn.dealId, 'turn_refused', { reason, call: n });
+    if (n > perTurn) {
+      await refuse('call_limit');
+      return { stopped: 'call_limit', reply: CALL_LIMIT_REPLY };
+    }
     callsMade.set(turn, n);
 
-    if (!(await dailyCap.take()).allowed) return { stopped: 'daily_cap', reply: DAILY_CAP_REPLY };
+    if (!(await dailyCap.take()).allowed) {
+      await refuse('daily_cap');
+      return { stopped: 'daily_cap', reply: DAILY_CAP_REPLY };
+    }
 
     const log = (type, payload) =>
       eventLog.logEvent(turn.sessionId, turn.turnId, turn.role, turn.dealId, type, { call: n, ...payload });

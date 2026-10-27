@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { createEventLog, fileEventStore, memoryEventStore } from '../events.js';
+import { createEventLog, EVENT_TYPES, fileEventStore, memoryEventStore } from '../events.js';
 
 test('logEvent stores a row', async () => {
   const log = createEventLog(memoryEventStore());
@@ -54,4 +54,12 @@ test('kv event store keeps events per turn, in order, with no expiry', async () 
   await log.logEvent('s1', 't2', 'broker', 'TX', 'tool_start', { a: 3 });
   t += 365 * 24 * 3600 * 1000;
   assert.deepStrictEqual((await log.eventsForTurn('t1')).map(e => e.payload), [{ a: 1 }, { a: 2 }]);
+});
+
+test('turn_refused is a known event type, and logEvent still rejects others', async () => {
+  assert.ok(EVENT_TYPES.has('turn_refused'));
+  const store = memoryEventStore();
+  await createEventLog(store).logEvent('s1', 't1', 'buyer', 'TX', 'turn_refused', { reason: 'rate_limit' });
+  assert.strictEqual(store.rows[0].event_type, 'turn_refused');
+  await assert.rejects(createEventLog(store).logEvent('s1', 't1', 'buyer', 'TX', 'refused', {}), /unknown event type/);
 });
