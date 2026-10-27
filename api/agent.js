@@ -19,7 +19,7 @@ export function createAgentEndpoint(env = process.env, { callModel = modelClient
         handler = createAgentHandler({
           callModel, getSession: r => sessionFromRequest(r, env),
           limiter: rt.limiter, dailyCap: rt.dailyCap, eventLog: rt.eventLog, threads: rt.threads,
-          repository: rt.repository, seenFields: rt.seenFields,
+          repository: rt.repository, seenFields: rt.seenFields, inbox: rt.inbox,
         });
       }
     } catch {

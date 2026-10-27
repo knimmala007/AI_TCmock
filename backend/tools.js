@@ -9,6 +9,7 @@ import { ToolArgsError } from './agent_loop.js';
 import { DOCS } from './fixtures.js';
 import { canAccessForm, stageFor, toolsFor } from './roles.js';
 import { redactDeal } from './safety.js';
+import { askBrokerTool, inboxSummary } from './inbox.js';
 import { STATUS, guardWrite } from './status.js';
 
 const fail = (code, message, next_step) => ({ ok: false, error: { code, message, next_step } });
@@ -150,13 +151,15 @@ function oneAnswer(args) {
   return { fieldName: field_name.trim(), value: value.trim() };
 }
 
-export function createTools({ repository, seenFields }) {
+export function createTools({ repository, seenFields, inbox }) {
   async function getDeal({ turn }) {
     const deal = await repository.get(turn.dealId);
     if (!deal) return NO_DEAL;
     const { view, fieldNames } = viewOf(turn.role, deal);
     await seenFields.add({ dealId: turn.dealId, sessionId: turn.sessionId, role: turn.role }, fieldNames);
-    return { ok: true, data: redactDeal(view), field_names: fieldNames };
+    // Only the broker's view has an inbox key, and it never carries the question text (ADR 0008, ticket 050).
+    const data = turn.role === 'broker' && inbox ? { ...view, inbox: await inboxSummary(inbox, turn.dealId) } : view;
+    return { ok: true, data: redactDeal(data), field_names: fieldNames };
   }
 
   // The question is chosen by the rules (unblock count, then question order). Nothing the model passes is read.
@@ -220,6 +223,7 @@ export function createTools({ repository, seenFields }) {
     ask_next_question: { definition: DEFINITIONS.ask_next_question, key: () => ({}), run: askNextQuestion },
     // No `key`: the whole input counts, so sending the identical save again is the repeat the loop stops.
     save_answers: { definition: DEFINITIONS.save_answers, run: saveAnswers },
+    ...(inbox ? { ask_broker: askBrokerTool({ inbox }) } : {}),
   };
 
   return {
