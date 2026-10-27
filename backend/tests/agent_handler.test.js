@@ -201,3 +201,53 @@ test('endpoint: with no model client wired it returns 503 MODEL_NOT_CONFIGURED',
   assert.strictEqual(res.status, 503);
   assert.strictEqual((await res.json()).error, 'MODEL_NOT_CONFIGURED');
 });
+
+const refusals = store => store.rows.filter(r => r.event_type === 'turn_refused');
+
+test('the rate limit logs one turn_refused rate_limit with the session role and deal, never a body value', async () => {
+  const { handler, store } = setup({ perMinute: 1 });
+  await handler(post(cookieFor('buyer', 's-9')));
+  const res = await handler(post(cookieFor('buyer', 's-9'), { message: 'private words', role: 'broker', dealId: 'TX-OTHER' }));
+  assert.strictEqual(res.status, 429);
+  assert.strictEqual(refusals(store).length, 1);
+  const [row] = refusals(store);
+  assert.deepStrictEqual(row.payload, { reason: 'rate_limit' });
+  assert.deepStrictEqual([row.role, row.session_id, row.transaction_id, row.turn_id], ['buyer', 's-9', DEAL, (await res.json()).turnId]);
+  const raw = JSON.stringify(row);
+  assert.ok(!raw.includes('private words') && !raw.includes('TX-OTHER'));
+});
+
+test('a rate-limited request with no session logs nothing', async () => {
+  const { handler, store } = setup({ perMinute: 1 });
+  await handler(post(null));
+  const res = await handler(post(null));
+  assert.strictEqual(res.status, 429);
+  assert.strictEqual(store.rows.length, 0);
+});
+
+test('the daily cap, through the handler, logs one turn_refused daily_cap with the session role and deal', async () => {
+  const { handler, store } = setup({ cap: 1 });
+  await handler(post(cookieFor('lender')));
+  await handler(post(cookieFor('lender'), { message: 'again' }));
+  assert.strictEqual(refusals(store).length, 1);
+  assert.strictEqual(refusals(store)[0].payload.reason, 'daily_cap');
+  assert.deepStrictEqual([refusals(store)[0].role, refusals(store)[0].transaction_id], ['lender', DEAL]);
+});
+
+test('an answered turn logs no turn_refused', async () => {
+  const { handler, store } = setup();
+  await handler(post(cookieFor('broker')));
+  assert.strictEqual(refusals(store).length, 0);
+});
+
+test('the legal guard logs one turn_refused legal_guard with the status, role and deal, and not the advice', async () => {
+  const { handler, store } = setup({ replies: [ok('You should withdraw your offer today.')] });
+  const res = await handler(post(cookieFor('seller', 's-2'), { message: 'Should I withdraw?' }));
+  assert.strictEqual((await res.json()).status, 'LEGAL_JUDGMENT');
+  assert.strictEqual(refusals(store).length, 1);
+  const [row] = refusals(store);
+  assert.deepStrictEqual(row.payload, { reason: 'legal_guard', status: 'LEGAL_JUDGMENT' });
+  assert.deepStrictEqual([row.role, row.session_id, row.transaction_id], ['seller', 's-2', DEAL]);
+  const raw = JSON.stringify(store.rows.filter(r => r.event_type === 'turn_refused'));
+  assert.ok(!raw.includes('withdraw'));
+});

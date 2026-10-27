@@ -7,7 +7,8 @@
 // Returns { stopped, reply }. stopped is null for a reply to save, or a reason to pass up unsaved:
 // a gate stop ('call_limit', 'daily_cap') comes straight from modelGate; the loop adds
 // 'tool_call_limit' and 'repeat_call'. The limits are in config.js (MODEL_CALLS_PER_TURN is
-// enforced by the gate). Per-tool-call and tool-result logging is not built (ticket 062).
+// enforced by the gate). Each tool call logs tool_start and tool_end, and a loop stop logs turn_refused (ticket 062).
+// These events carry the tool name, the call id, and counts only: no arguments and no result text.
 import { REPEATED_CALL_LIMIT, TOOL_CALLS_PER_TURN } from './config.js';
 import { replyText } from './model_interface.js';
 
@@ -38,8 +39,17 @@ function canonical(v) {
 }
 
 // Runs one tool_use block. A bad name or bad arguments become an error result, not a stopped turn.
-async function runTool(registry, turn, block, allowed) {
+async function runTool(registry, turn, block, allowed, log) {
   const tool = Object.hasOwn(registry, block.name) ? registry[block.name] : null;
+  // A name the model invented is not logged as written.
+  const base = { tool: tool ? block.name : 'unknown_tool', tool_use_id: block.id };
+  await log('tool_start', base);
+  const done = await execTool(registry, turn, block, allowed, tool);
+  await log('tool_end', { ...base, is_error: Boolean(done.is_error), result_chars: done.content.length });
+  return done;
+}
+
+async function execTool(registry, turn, block, allowed, tool) {
   const result = { type: 'tool_result', tool_use_id: block.id };
   if (!tool) return { ...result, is_error: true, content: `No tool named "${block.name}" is available.` };
   if (allowed && !allowed.includes(block.name)) return { ...result, is_error: true, content: TOOL_NOT_ALLOWED };
@@ -52,7 +62,10 @@ async function runTool(registry, turn, block, allowed) {
   }
 }
 
-export async function runLoop(modelGate, turn, { system, messages, registry = {}, allowed = null }) {
+export async function runLoop(modelGate, turn, { system, messages, registry = {}, allowed = null, eventLog = null }) {
+  const log = async (type, payload) => {
+    if (eventLog) await eventLog.logEvent(turn.sessionId, turn.turnId, turn.role, turn.dealId, type, payload);
+  };
   // `allowed` is the names the turn's role may use (from its frozen role); without it every registry tool is offered.
   const tools = Object.entries(registry).filter(([n]) => !allowed || allowed.includes(n)).map(([, t]) => t.definition);
   const thread = [...messages];
@@ -74,15 +87,21 @@ export async function runLoop(modelGate, turn, { system, messages, registry = {}
     // All or nothing: the whole message is checked against both limits before any of its tools
     // runs, so a stop runs none of them and nothing is sent back.
     toolCalls += blocks.length;
-    if (toolCalls > TOOL_CALLS_PER_TURN) return { stopped: 'tool_call_limit', reply: TOOL_CALL_LIMIT_REPLY };
+    if (toolCalls > TOOL_CALLS_PER_TURN) {
+      await log('turn_refused', { reason: 'tool_call_limit', tool_calls: toolCalls });
+      return { stopped: 'tool_call_limit', reply: TOOL_CALL_LIMIT_REPLY };
+    }
     for (const block of blocks) {
       const tool = Object.hasOwn(registry, block.name) ? registry[block.name] : null;
       const key = `${block.name} ${canonical(tool && tool.key ? tool.key(block.input) : block.input)}`;
       seen.set(key, (seen.get(key) ?? 0) + 1);
-      if (seen.get(key) > REPEATED_CALL_LIMIT) return { stopped: 'repeat_call', reply: REPEAT_CALL_REPLY };
+      if (seen.get(key) > REPEATED_CALL_LIMIT) {
+        await log('turn_refused', { reason: 'repeat_call', tool: tool ? block.name : 'unknown_tool' });
+        return { stopped: 'repeat_call', reply: REPEAT_CALL_REPLY };
+      }
     }
     const results = [];
-    for (const block of blocks) results.push(await runTool(registry, turn, block, allowed));
+    for (const block of blocks) results.push(await runTool(registry, turn, block, allowed, log));
     thread.push({ role: 'assistant', content }, { role: 'user', content: results });
   }
 }

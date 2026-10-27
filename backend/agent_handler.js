@@ -7,7 +7,8 @@
 //
 // Order: method -> model configured -> rate limit -> session -> message -> load thread
 //        -> the tool-use loop (agent_loop.js, every model call through modelGate) -> legal-advice guard (legal_guard.js) -> save thread -> {reply, turnId}.
-// A stopped turn (rate limit, daily cap, call limit, tool-call limit, repeat stop) saves nothing to the thread.
+// A stopped turn (rate limit, daily cap, call limit, tool-call limit, repeat stop) saves nothing to the thread;
+// each is logged as a turn_refused event with a reason code (ticket 062), as is a legal-guard refusal.
 import crypto from 'node:crypto';
 import { CHAT_PER_MINUTE } from './config.js';
 import { clientKey } from './demo_session.js';
@@ -38,9 +39,12 @@ export function createAgentHandler({
 
     const turnId = newTurnId();
     const limited = await limiter.hit(`chat:${clientKey(req)}`, { limit: perMinute, windowSeconds: 60 });
-    if (!limited.allowed) return json(429, { reply: RATE_LIMIT_REPLY, turnId }, { 'retry-after': '60' });
-
+    // Logged only when a valid session is present: with none there is no role to record.
     const session = getSession(req);
+    if (!limited.allowed) {
+      if (session) await eventLog.logEvent(session.sessionId, turnId, session.role, session.dealId, 'turn_refused', { reason: 'rate_limit' });
+      return json(429, { reply: RATE_LIMIT_REPLY, turnId }, { 'retry-after': '60' });
+    }
     if (!session) return json(401, { error: 'UNAUTHENTICATED', message: 'Pick a role first.' });
     const { role, sessionId, dealId } = session;
 
@@ -55,7 +59,7 @@ export function createAgentHandler({
     const turn = createTurn({ sessionId, turnId, role, dealId });
     const r = await runLoop(modelGate, turn, {
       system: promptFor(role), messages: [...history, { role: 'user', content: message }],
-      registry: registry ?? (tools ? tools.registry : {}),
+      eventLog, registry: registry ?? (tools ? tools.registry : {}),
       allowed: registry ? null : (tools ? tools.forRole(turn.role) : []),
     });
     if (r.stopped === 'daily_cap') return json(429, { reply: r.reply, turnId });
@@ -64,6 +68,9 @@ export function createAgentHandler({
     // The legal-advice guard (030): on the session role's reply only, after the loop. A refusal replaces the
     // reply, so the advice is never saved to the thread or returned.
     const guarded = guardReply({ role, reply: r.reply });
+    if (guarded.status) {
+      await eventLog.logEvent(sessionId, turnId, role, dealId, 'turn_refused', { reason: 'legal_guard', status: guarded.status });
+    }
     const reply = redact(guarded.reply);
     await threads.append(scope, { role: 'user', content: message });
     await threads.append(scope, { role: 'assistant', content: reply });

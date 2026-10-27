@@ -64,7 +64,7 @@ test('when the daily cap is reached the model is not called and a plain message 
   assert.strictEqual(r.stopped, 'daily_cap');
   assert.match(r.reply, /daily/i);
   assert.strictEqual(calls.length, 1);
-  assert.strictEqual(store.rows.length, 2); // only the first call's start and end
+  assert.deepStrictEqual(store.rows.map(r => r.event_type), ['model_call_start', 'model_call_end', 'turn_refused']);
 });
 
 test('every call logs start then end, with the turn\'s role, session and deal, redacted', async () => {
@@ -99,4 +99,28 @@ test('the result validator accepts the interface shape and rejects others', () =
 test('a turn\'s scope cannot be changed after it is made', () => {
   const turn = createTurn({ sessionId: 's1', turnId: 't1', role: 'seller', dealId: 'TX-CG118' });
   assert.throws(() => { turn.role = 'broker'; });
+});
+
+test('a daily-cap refusal logs one turn_refused with the reason, the turn scope and no model_call_start', async () => {
+  const { gate, turn, store } = setup({ cap: 1 });
+  await gate(turn, request);
+  store.rows.length = 0;
+  await gate(turn, { ...request, messages: [{ role: 'user', content: 'private words' }] });
+  assert.strictEqual(store.rows.length, 1);
+  const [row] = store.rows;
+  assert.strictEqual(row.event_type, 'turn_refused');
+  assert.deepStrictEqual(row.payload, { reason: 'daily_cap', call: 2 });
+  assert.deepStrictEqual([row.role, row.session_id, row.transaction_id], ['seller', 's1', 'TX-CG118']);
+  assert.ok(!JSON.stringify(row).includes('private words'));
+});
+
+test('the 9th-call refusal logs one turn_refused with reason call_limit and no model_call_start', async () => {
+  const { gate, turn, store } = setup();
+  for (let i = 0; i < MODEL_CALLS_PER_TURN; i++) await gate(turn, request);
+  const before = store.rows.length;
+  await gate(turn, request);
+  const added = store.rows.slice(before);
+  assert.deepStrictEqual(added.map(r => r.event_type), ['turn_refused']);
+  assert.deepStrictEqual(added[0].payload, { reason: 'call_limit', call: MODEL_CALLS_PER_TURN + 1 });
+  assert.deepStrictEqual([added[0].role, added[0].transaction_id], ['seller', 'TX-CG118']);
 });
