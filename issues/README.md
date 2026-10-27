@@ -1,6 +1,6 @@
 # Issues: role-based chat agent
 
-68 tickets: 31 done, 31 to do, 5 blocked, 1 closed (032). Source of requirements: `.scratch/role-based-chat-agent/spec.md`, `.claude/CONTEXT.MD`, ADRs 0001 to 0006, `backend/reminders.md`. Words follow `GLOSSARY.md`.
+69 tickets: 31 done, 32 to do, 5 blocked, 1 closed (032). Source of requirements: `.scratch/role-based-chat-agent/spec.md`, `.claude/CONTEXT.MD`, ADRs 0001 to 0006, `backend/reminders.md`. Words follow `GLOSSARY.md`.
 
 | # | Title | Status | Depends on | Owner |
 |---|-------|--------|------------|-------|
@@ -72,6 +72,7 @@
 | 060 | [Real loan-checklist code for the Lender](060-real-lender-checklist-code.md) | blocked | 055 | agent |
 | 061 | [Remove `aiagent` and add `lender` in the Kialae `scope.js`](061-remove-aiagent-from-kialae-scope.md) | blocked | 014 | human |
 | 062 | [Log refused turns (rate limit, daily cap, call limit, tool-call limit, repeat stop) and tool calls in events.js](062-log-refused-turns.md) | todo | 027c | agent |
+| 063 | [Port the chat panel and role switcher to `index_v2.html`](063-port-chat-and-role-switcher-to-index-v2.md) | todo | 029 | agent |
 
 ## Why this order
 
