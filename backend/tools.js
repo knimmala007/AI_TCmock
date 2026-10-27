@@ -8,6 +8,7 @@ import { createEngine } from '../rules.js';
 import { DOCS } from './fixtures.js';
 import { canAccessForm, stageFor, toolsFor } from './roles.js';
 import { redactDeal } from './safety.js';
+import { askBrokerTool, inboxSummary } from './inbox.js';
 
 const fail = (code, message, next_step) => ({ ok: false, error: { code, message, next_step } });
 
@@ -83,13 +84,15 @@ function engineFor(deal) {
   return createEngine({ getAnswers: () => deal.answers || {}, getDeal: () => deal, getDocs: () => DOCS });
 }
 
-export function createTools({ repository, seenFields }) {
+export function createTools({ repository, seenFields, inbox }) {
   async function getDeal({ turn }) {
     const deal = await repository.get(turn.dealId);
     if (!deal) return NO_DEAL;
     const { view, fieldNames } = viewOf(turn.role, deal);
     await seenFields.add({ dealId: turn.dealId, sessionId: turn.sessionId, role: turn.role }, fieldNames);
-    return { ok: true, data: redactDeal(view), field_names: fieldNames };
+    // Only the broker's view has an inbox key, and it never carries the question text (ADR 0008, ticket 050).
+    const data = turn.role === 'broker' && inbox ? { ...view, inbox: await inboxSummary(inbox, turn.dealId) } : view;
+    return { ok: true, data: redactDeal(data), field_names: fieldNames };
   }
 
   // The question is chosen by the rules (unblock count, then question order). Nothing the model passes is read.
@@ -117,6 +120,7 @@ export function createTools({ repository, seenFields }) {
   });
   const implemented = { get_deal: getDealTool('get_deal'), get_deal_status: getDealTool('get_deal_status'),
     ask_next_question: { definition: DEFINITIONS.ask_next_question, key: () => ({}), run: askNextQuestion },
+    ...(inbox ? { ask_broker: askBrokerTool({ inbox }) } : {}),
   };
 
   return {

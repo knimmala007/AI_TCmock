@@ -44,3 +44,7 @@ export const THREAD_TTL_SECONDS = 24 * 60 * 60; // one day
 // Local-dev storage only. On Vercel the filesystem is not writable; see reminders.md R1/R7.
 export const DATA_PATH = process.env.DEAL_DATA_PATH || path.join(BACKEND_DIR, 'data', 'deals.json');
 export const EVENTS_PATH = process.env.AGENT_EVENTS_PATH || path.join(BACKEND_DIR, 'data', 'agent_events.jsonl');
+
+// The broker's inbox (ticket 050): the longest question ask_broker accepts, and the most items one deal holds.
+export const INBOX_QUESTION_MAX_CHARS = 2000;
+export const INBOX_ITEMS_PER_DEAL_MAX = 50;

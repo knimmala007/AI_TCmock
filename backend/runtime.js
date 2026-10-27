@@ -5,6 +5,7 @@ import { createEventLog, fileEventStore, kvEventStore } from './events.js';
 import { createSeenFieldStore, createThreadStore } from './threads.js';
 import { createDailyCap, createRateLimiter } from './limits.js';
 import { memoryKv, upstashKv } from './kv.js';
+import { createInboxStore } from './inbox.js';
 
 export function createRuntime(env = process.env, { fetch = globalThis.fetch } = {}) {
   const url = env.UPSTASH_REDIS_REST_URL;
@@ -21,6 +22,7 @@ export function createRuntime(env = process.env, { fetch = globalThis.fetch } = 
     eventLog: createEventLog(hosted ? kvEventStore(kv) : fileEventStore()),
     threads: createThreadStore(kv),
     seenFields: createSeenFieldStore(kv),
+    inbox: createInboxStore(kv),
     limiter: createRateLimiter(kv),
     dailyCap: createDailyCap(kv),
   };

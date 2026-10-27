@@ -26,10 +26,10 @@ const json = (status, body, extra = {}) => new Response(JSON.stringify(body), {
 
 export function createAgentHandler({
   callModel, getSession, limiter, dailyCap, eventLog, threads,
-  perMinute = CHAT_PER_MINUTE, newTurnId = () => crypto.randomUUID(), registry, repository, seenFields,
+  perMinute = CHAT_PER_MINUTE, newTurnId = () => crypto.randomUUID(), registry, repository, seenFields, inbox,
 }) {
   // `registry` is a test seam and is offered as given. Otherwise each turn gets the tools of its role.
-  const tools = repository && seenFields ? createTools({ repository, seenFields }) : null;
+  const tools = repository && seenFields ? createTools({ repository, seenFields, inbox }) : null;
   const modelGate = callModel ? createModelGate({ callModel, dailyCap, eventLog }) : null;
 
   return async function POST(req) {
