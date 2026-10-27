@@ -1,4 +1,4 @@
-git worktree remove /Users/karthiknimmala007/Documents/Codes1/AI_TC_Agent/AI_Trans-030a// Polite off-topic refusal (030a) at the handler seam: a scripted fake model, memory storage, no network.
+// Polite off-topic refusal (030a) at the handler seam: a scripted fake model, memory storage, no network.
 // The fake model returns whatever is scripted, so these tests prove plumbing only: a decline passes through
 // unchanged, no tool runs on it, and the thread stores it. Whether a real model declines is the prompt's job
 // and is checked by the manual run (028a). Tests never assert on prompt wording.
