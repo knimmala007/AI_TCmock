@@ -69,10 +69,11 @@ async function ask(role, { args = {}, message = 'hi', dealId = DEAL, deals = [],
   return { ...t, result, e: JSON.parse(result.content) };
 }
 
-// What the rules pick for the same deal, computed directly.
-const rulesPick = (deal, opts) => createEngine({
-  getAnswers: () => deal.answers || {}, getDeal: () => deal, getDocs: () => DOCS,
-}).nextByUnblock(opts);
+// What the rules pick for the same deal, computed directly. Like the tool (ticket 039), it never picks a document-upload
+// question: chat cannot answer one. Their keys come from the engine's own QUESTIONS.
+const engineFor = deal => createEngine({ getAnswers: () => deal.answers || {}, getDeal: () => deal, getDocs: () => DOCS });
+const DOC_KEYS = engineFor(SEED_DEALS[DEAL]).QUESTIONS.filter(q => q.type === 'doc').map(q => q.k);
+const rulesPick = (deal, opts = {}) => engineFor(deal).nextByUnblock({ ...opts, skip: [...(opts.skip || []), ...DOC_KEYS] });
 
 const ANSWERS_ALL_BUT_ATTEST = {
   sellerType: 'Individual(s)', seller: 'Individual Sellers', address: '2743 Longford Dr', city: 'San José',

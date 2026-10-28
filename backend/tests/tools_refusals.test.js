@@ -244,14 +244,14 @@ test('in a batch, a refused fact is reported by position and the others are stil
   const w = await world(dealWith({ locks: { SPQ: lock() } }));
   const t = await w.say('broker', [['save_answers', { answers: [
     { field_name: TWO_FORM_FACT, value: 'ZEBRA-7731' }, // feeds the locked SPQ
-    { field_name: 'listingAgent', value: 'Pat Lee' }, // feeds AVID, BCA, ABA, RLA
+    { field_name: ESCROW, value: 'Bay Escrow' }, // feeds forms not required yet, none locked, and no recorded fact (ticket 039)
   ] }]]);
   const e = t.es[0];
   assert.strictEqual(e.ok, true, t.raw[0]);
   assert.deepStrictEqual([e.data.results[0].index, e.data.results[0].ok, e.data.results[0].error.code], [0, false, 'FORM_LOCKED']);
   assert.deepStrictEqual([e.data.results[1].index, e.data.results[1].ok], [1, true]);
   const stored = await w.stored();
-  assert.strictEqual(stored.answers.listingAgent.v, 'Pat Lee');
+  assert.strictEqual(stored.answers[ESCROW].v, 'Bay Escrow');
   assert.ok(!stored.answers[TWO_FORM_FACT], 'the refused fact is not stored');
 });
 
