@@ -46,7 +46,7 @@
 | 032 | [Tool-call limits and repeat stop](032-tool-call-limits-and-repeat-stop.md) | closed by 027c; logging moves to 062 | 027c | agent |
 | 033 | [`ask_next_question` picks the question in code](033-ask-next-question-by-unblock-count.md) | done | 024, 031 | agent |
 | 034 | [`save_answers` saves a fact](034-save-answers-saves-a-fact.md) | done | 033 | agent |
-| 035 | [Forms with no template are flagged, not filled](035-untemplated-forms-flagged-not-filled.md) | todo | 034 | agent |
+| 035 | [Forms with no template are flagged, not filled](035-untemplated-forms-flagged-not-filled.md) | review pending | 034 | agent |
 | 036 | [`save_answers` field-name guard and batch cap](036-save-answers-field-guard-and-batch-cap.md) | todo | 034 | agent |
 | 037 | [`save_answers` write refusals](037-save-answers-write-refusals.md) | todo | 034, 023 | agent |
 | 038 | [Untested jurisdictions decline with no rules](038-untested-jurisdiction-declines.md) | todo | 034 | agent |

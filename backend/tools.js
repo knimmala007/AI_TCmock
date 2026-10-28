@@ -19,10 +19,35 @@ const fail = (code, message, next_step) => ({ ok: false, error: { code, message,
 export const NO_DEAL = fail('NOT_FOUND', 'No deal file is available for this session.',
   'Tell the user the deal could not be loaded and stop.');
 
+// A form the rules require but DOCS does not define (ticket 018, R9). The agent flags it and never fills it.
+const hasTemplate = code => DOCS.some(x => x.code === code);
+
+// PROVISIONAL transport code, like NOT_FOUND: not one of the ten status codes, pending ticket 024. ok is true only
+// when something was stored, so a fact that feeds only untemplated forms is ok: false. The text is fixed and carries no data.
+export const NO_TEMPLATE = fail('NO_TEMPLATE', 'Not saved. The form this answer belongs to has no template yet, so it cannot be filled.',
+  'Do not retry: the form needs a template, and nothing the user says will change that. Use ask_next_question for the next question.');
+
 // Seller certifications (ADR 0010): only the seller session is asked them. Every other role skips them and
 // never counts them as candidates. Ticket 039 enforces the save side; the list is a constant here, not a rules.js flag.
 export const ATTESTATION_FIELDS = Object.freeze(['waterHeater', 'smokeAlarm', 'coDetector']);
 export const NO_QUESTIONS_LEFT = 'No unanswered questions are left for this deal.';
+// Only untemplated-form questions remain. Fixed text: no deal data and no form names.
+export const ONLY_UNTEMPLATED_LEFT = 'No more questions can be asked right now. Some forms still need a template, so they cannot be filled yet.';
+
+// The required forms a fact feeds that this role may see, split by whether the form has a template. The one rule
+// behind checkWrite (refuse or save), flaggedFormsOf (what is reported) and ask_next_question (what is offered).
+function formsFedBy(role, engine, q) {
+  const required = engine.requiredForms().filter(code => (q.fills || []).includes(code) && canAccessForm(role, code));
+  return { templated: required.filter(hasTemplate), flagged: required.filter(code => !hasTemplate(code)) };
+}
+const feedsOnlyUntemplated = (role, engine, q) => {
+  const { templated, flagged } = formsFedBy(role, engine, q);
+  return flagged.length > 0 && !templated.length;
+};
+
+// Questions that feed only forms with no template are never offered: save_answers would refuse the answer (NO_TEMPLATE),
+// so asking would send the model round in a circle. Same rule as checkWrite, so the two cannot disagree.
+const untemplatedOnly = (role, engine) => engine.QUESTIONS.filter(q => feedsOnlyUntemplated(role, engine, q)).map(q => q.k);
 
 // No input: the deal and the role are not arguments, so nothing the model passes is read.
 const NO_INPUT = { type: 'object', properties: {}, additionalProperties: false };
@@ -105,7 +130,7 @@ function viewOf(role, deal) {
         name: d.name,
         ready: engine.formReady(d.code),
         // A required form with no template is flagged, never filled (ticket 018).
-        has_template: DOCS.some(x => x.code === d.code),
+        has_template: hasTemplate(d.code),
       })),
     },
     fieldNames: [...Object.keys(fields), ...missing],
@@ -132,13 +157,19 @@ function checkWrite(role, deal, engine, q) {
     return fail(STATUS.FORM_NOT_REQUIRED, 'That question does not apply to this deal.',
       'Do not save it. Use ask_next_question to get the next question.');
   }
-  const required = engine.requiredForms();
-  for (const formCode of forms.filter(code => required.includes(code))) {
+  // A fact that feeds only forms with no template is flagged and not saved. A fact that also feeds a templated form is
+  // saved; the guards run on the templated forms only, and the untemplated ones are reported as flagged.
+  if (feedsOnlyUntemplated(role, engine, q)) return NO_TEMPLATE;
+  const { templated } = formsFedBy(role, engine, q);
+  for (const formCode of templated) {
     const r = guardWrite({ role, deal, engine, formCode });
     if (r) return fail(r.error, r.message, r.next_step);
   }
   return null;
 }
+
+// The required forms this fact feeds that have no template, limited to the role's view. Never filled.
+const flaggedFormsOf = (role, engine, q) => formsFedBy(role, engine, q).flagged;
 
 // The one fact in the call, or a ToolArgsError. Only these two strings are read; anything else the model sends is ignored.
 function oneAnswer(args) {
@@ -167,11 +198,15 @@ export function createTools({ repository, seenFields, inbox }) {
     const deal = await repository.get(turn.dealId);
     if (!deal) return NO_DEAL;
     const engine = engineFor(deal);
-    const next = engine.nextByUnblock({
-      skip: turn.role === 'seller' ? [] : ATTESTATION_FIELDS,
-      formFilter: code => canAccessForm(turn.role, code),
-    });
-    if (!next) return { ok: true, data: redactDeal({ done: true, message: NO_QUESTIONS_LEFT }), field_names: [] };
+    const roleSkip = turn.role === 'seller' ? [] : ATTESTATION_FIELDS;
+    const formFilter = code => canAccessForm(turn.role, code);
+    const next = engine.nextByUnblock({ skip: [...roleSkip, ...untemplatedOnly(turn.role, engine)], formFilter });
+    if (!next) {
+      // Say why: a question was held back only because its forms have no template, or every question is answered.
+      const held = engine.nextByUnblock({ skip: roleSkip, formFilter });
+      const message = held ? ONLY_UNTEMPLATED_LEFT : NO_QUESTIONS_LEFT;
+      return { ok: true, data: redactDeal({ done: true, message }), field_names: [] };
+    }
     const { question: q, unblocks } = next;
     const fieldNames = [q.k];
     await seenFields.add({ dealId: turn.dealId, sessionId: turn.sessionId, role: turn.role }, fieldNames);
@@ -206,7 +241,8 @@ export function createTools({ repository, seenFields, inbox }) {
         saved: { field_name: q.k, value },
         forms_added: visible(result.added),
         forms_removed: visible(result.removed),
-        forms_filled: visible(result.filled),
+        forms_filled: visible(result.filled).filter(hasTemplate),
+        flagged_forms: flaggedFormsOf(turn.role, engine, q),
         missing_fields: view.missing_fields,
       }),
       field_names: names,

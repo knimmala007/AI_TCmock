@@ -226,3 +226,180 @@ test('guard seam: a form in the approved snapshot refuses the write and the stor
   assert.strictEqual(t.e.error.code, 'POST_APPROVAL_CHANGE');
   assert.deepStrictEqual(await t.reload(OTHER), before);
 });
+
+// ---- ticket 035: a required form with no template is flagged, never filled (R9, ticket 018) ----
+import { STATUS } from '../status.js';
+import { NO_TEMPLATE, NO_QUESTIONS_LEFT, ONLY_UNTEMPLATED_LEFT } from '../tools.js';
+
+const hasTpl = code => DOCS.some(d => d.code === code);
+const sf = (answers = {}, extra = {}) => variant({ propertyType: 'Condominium', ...answers }, extra);
+const SENTINEL = 'ZZ-NO-LEAK-4412';
+
+test('035: NO_TEMPLATE is a provisional transport code, not an eleventh status code', () => {
+  assert.ok(!Object.values(STATUS).includes('NO_TEMPLATE'));
+  assert.strictEqual(NO_TEMPLATE.ok, false);
+  assert.strictEqual(NO_TEMPLATE.error.code, 'NO_TEMPLATE');
+  assert.match(NO_TEMPLATE.error.message, /^Not saved\./);
+  assert.match(NO_TEMPLATE.error.next_step, /Do not retry/);
+});
+
+test('035: a fact that feeds only untemplated forms is not saved: ok false, fixed text, nothing stored', async () => {
+  for (const role of ['broker', 'seller']) {
+    let saves = 0;
+    const deal = sf();
+    const real = createRepository(memoryStorage());
+    await real.save(deal);
+    const stub = { get: id => real.get(id), save: d => { saves++; return real.save(d); } };
+    const t = await run(role, [one('hoaName', `Ashby ${SENTINEL}`)], { deal, stub });
+    assert.deepStrictEqual(t.e, NO_TEMPLATE, role);
+    assert.strictEqual(saves, 0, `${role}: nothing written`);
+    assert.ok(!JSON.stringify(t.e).includes(SENTINEL));
+    assert.ok(!JSON.stringify(t.e).includes('HOA'), 'the text names no form code');
+    assert.deepStrictEqual(await t.seenFields.list({ dealId: OTHER, sessionId: 's-1', role }), []);
+  }
+});
+
+test('035: the same refusal holds when the model also passes role, deal and form in the arguments', async () => {
+  const t = await run('broker', [one('hoaName', 'Ashby', { role: 'lender', dealId: 'TX-CG118', formCode: 'TDS' })], { deal: sf() });
+  assert.deepStrictEqual(t.e, NO_TEMPLATE);
+  assert.ok(!(await t.reload(OTHER)).answers.hoaName);
+});
+
+test('035: a fact that also feeds a templated form is saved; the untemplated forms are flagged, not filled', async () => {
+  const before = sf({ city: 'San Francisco' });
+  const t = await run('broker', [one('apn', '123-45-678')], { deal: before });
+  assert.strictEqual(t.e.ok, true);
+  assert.deepStrictEqual(t.e.data.flagged_forms.sort(), ['SF-3R']);
+  assert.ok(t.e.data.forms_filled.length > 0 && t.e.data.forms_filled.every(hasTpl));
+  assert.ok(!t.e.data.forms_filled.includes('SF-3R'));
+  assert.strictEqual((await t.reload(OTHER)).answers.apn.v, '123-45-678');
+  const none = await run('broker', [one('city', 'San José')]);
+  assert.deepStrictEqual(none.e.data.flagged_forms, []);
+});
+
+test('035: flagged_forms is limited to the role view', async () => {
+  const t = await run('seller', [one('apn', '123-45-678')], { deal: sf({ city: 'Los Angeles' }) });
+  assert.strictEqual(t.e.ok, true);
+  for (const code of t.e.data.flagged_forms) assert.ok(canAccessForm('seller', code));
+});
+
+test('035: an approved or locked templated form still refuses the whole write of a mixed fact', async () => {
+  const base = { city: 'San Francisco' };
+  const approved = sf(base, { approval: { snapshot: { forms: ['NHD'], approved_by: 'broker', approved_at: 'then' } } });
+  const a = await run('broker', [one('apn', '123-45-678')], { deal: approved });
+  assert.strictEqual(a.e.error.code, 'POST_APPROVAL_CHANGE');
+  assert.deepStrictEqual(await a.reload(OTHER), approved);
+  const locked = sf(base, { locks: { NHD: { reason: 'under_review' } } });
+  const l = await run('broker', [one('apn', '123-45-678')], { deal: locked });
+  assert.strictEqual(l.e.error.code, 'FORM_LOCKED');
+  assert.deepStrictEqual(await l.reload(OTHER), locked);
+});
+
+test('035: get_deal lists the untemplated required forms as flagged, and the templated ones as not', async () => {
+  const deal = sf({ city: 'San Francisco' });
+  const t = await run('broker', [{}], { deal, name: 'get_deal' });
+  const forms = t.e.data.forms;
+  const flagged = forms.filter(f => !f.has_template).map(f => f.code);
+  assert.ok(['HOA', 'HOA-CERT', 'SF-3R'].every(c => flagged.includes(c)), flagged.join());
+  assert.ok(forms.filter(f => f.has_template).every(f => hasTpl(f.code)));
+  const s = await run('seller', [{}], { deal, name: 'get_deal_status' });
+  assert.ok(s.e.data.forms.some(f => f.code === 'HOA' && f.has_template === false));
+  const l = await run('lender', [{}], { deal, name: 'get_deal_status' });
+  assert.ok(!JSON.stringify(l.e).includes('"HOA"'));
+});
+
+test('035: which untemplated codes a fact can reach is pinned (the other codes are never fed by any question)', () => {
+  const engine = createEngine({ getAnswers: () => ({}), getDeal: () => ({ data: {} }), getDocs: () => DOCS });
+  const reachable = [...new Set(engine.QUESTIONS.flatMap(q => q.fills || []).filter(c => !hasTpl(c)))].sort();
+  assert.deepStrictEqual(reachable, ['HOA', 'HOA-CERT', 'LA-9A', 'LEASE', 'SF-3R']);
+  const onlyFlagged = engine.QUESTIONS.filter(q => (q.fills || []).length && q.fills.every(c => !hasTpl(c))).map(q => q.k);
+  assert.deepStrictEqual(onlyFlagged, ['hoaName']);
+});
+
+// Everything askable answered except hoaName, so the HOA question is the only one left for the deal.
+function onlyHoaLeft() {
+  const d = sf();
+  const engine = createEngine({ getAnswers: () => d.answers, getDeal: () => d, getDocs: () => DOCS });
+  for (let i = 0; i < 200; i++) {
+    const q = engine.pending().find(x => x.k !== 'hoaName');
+    if (!q) break;
+    engine.answer(q.k, q.type === 'choice' ? q.options[0] : 'x', 'test');
+  }
+  assert.deepStrictEqual(engine.pending().map(q => q.k), ['hoaName']);
+  return d;
+}
+
+test('035: after NO_TEMPLATE the next question is never the same one (no loop)', async () => {
+  for (const role of ['broker', 'seller']) {
+    const deal = onlyHoaLeft();
+    const saved = await run(role, [one('hoaName', 'Ashby')], { deal: structuredClone(deal) });
+    assert.deepStrictEqual(saved.e, NO_TEMPLATE, role);
+    const next = await run(role, [{}], { deal: structuredClone(deal), name: 'ask_next_question' });
+    assert.strictEqual(next.e.ok, true);
+    assert.notStrictEqual(next.e.data.question && next.e.data.question.field_name, 'hoaName', role);
+    assert.ok(!JSON.stringify(next.e).includes('hoaName'));
+  }
+});
+
+test('035: a question that also feeds a templated form is still asked', async () => {
+  const deal = sf({ city: 'San Francisco' });
+  const asked = [];
+  for (let i = 0; i < 60; i++) {
+    const n = await run('broker', [{}], { deal: structuredClone(deal), name: 'ask_next_question' });
+    const q = n.e.data.question;
+    if (!q) break;
+    asked.push(q.field_name);
+    deal.answers[q.field_name] = { v: 'x', src: 'test' };
+  }
+  assert.ok(asked.includes('apn'), 'apn feeds SF-3R and templated forms');
+  assert.ok(!asked.includes('hoaName'));
+});
+
+test('035: when only an untemplated question remains, the message says so and is not "no questions left"', async () => {
+  for (const role of ['broker', 'seller']) {
+    const next = await run(role, [{}], { deal: onlyHoaLeft(), name: 'ask_next_question' });
+    assert.strictEqual(next.e.ok, true);
+    assert.strictEqual(next.e.data.done, true);
+    assert.strictEqual(next.e.data.message, ONLY_UNTEMPLATED_LEFT, role);
+    assert.notStrictEqual(next.e.data.message, NO_QUESTIONS_LEFT);
+    assert.ok(!/HOA|hoaName/.test(JSON.stringify(next.e)), 'no form or field name');
+  }
+});
+
+test('035: when every question is answered, the message is still NO_QUESTIONS_LEFT', async () => {
+  const deal = onlyHoaLeft();
+  deal.answers.hoaName = { v: 'Ashby', src: 'test' };
+  const next = await run('broker', [{}], { deal, name: 'ask_next_question' });
+  assert.strictEqual(next.e.data.message, NO_QUESTIONS_LEFT);
+});
+
+test('035: ask_next_question and save_answers agree: nothing offered is refused with NO_TEMPLATE', async () => {
+  const deals = [
+    sf({ city: 'San Francisco' }),
+    sf({ city: 'Los Angeles', occupancy: 'Tenant-occupied' }),
+    sf({ city: 'San José', occupancy: 'Tenant-occupied' }),
+  ];
+  for (const base of deals) {
+    const walk = structuredClone(base);
+    const offered = [];
+    for (let i = 0; i < 60; i++) {
+      const n = await run('broker', [{}], { deal: structuredClone(walk), name: 'ask_next_question' });
+      const q = n.e.data.question;
+      if (!q) break;
+      offered.push(q.field_name);
+      walk.answers[q.field_name] = { v: 'x', src: 'test' };
+    }
+    assert.ok(offered.length > 5);
+    for (const key of offered) {
+      const saved = await run('broker', [one(key, 'x')], { deal: structuredClone(base) });
+      assert.notStrictEqual(saved.e.error && saved.e.error.code, 'NO_TEMPLATE', key);
+    }
+  }
+});
+
+test('035: guards run on the templated forms a fact feeds only; a lock on an untemplated form does not refuse it', async () => {
+  const deal = sf({ city: 'San Francisco' }, { locks: { 'SF-3R': { reason: 'under_review' } } });
+  const t = await run('broker', [one('apn', '123-45-678')], { deal });
+  assert.strictEqual(t.e.ok, true);
+  assert.deepStrictEqual(t.e.data.flagged_forms, ['SF-3R']);
+});

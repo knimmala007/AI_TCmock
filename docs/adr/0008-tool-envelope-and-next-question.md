@@ -6,7 +6,7 @@ Status: accepted (Oct 25 2026), from ticket 024. Options: `.scratch/options/024-
 No tool exists yet. The registry (`backend/roles.js`) lists names only. The spec and ADR 0002 say `ask_next_question` is chosen by unblock count; the browser's `nextQ()` takes the first pending question.
 
 ## Decision
-1. Every tool returns one envelope: `{ok, data?, error?: {code, message, next_step}, field_names?}`. `code` is one of the ten status codes, or a transport code (`UNKNOWN_TOOL`, `BAD_ARGS`, `UNKNOWN_FIELD`, `TURN_LIMIT`). Success carries `field_names` for the loop to add to the seen set.
+1. Every tool returns one envelope: `{ok, data?, error?: {code, message, next_step}, field_names?}`. `code` is one of the ten status codes, or a transport code (`UNKNOWN_TOOL`, `BAD_ARGS`, `UNKNOWN_FIELD`, `TURN_LIMIT`; provisional: `NO_TEMPLATE`, returned with `ok: false` when a fact feeds only forms with no template, pending ticket 024). `ok` is true only when something was stored. Success carries `field_names` for the loop to add to the seen set.
 2. `save_answers` takes `{answers: [{field_name, value}]}`, at most 15, and returns a per-fact array in `data`. Role, required, snapshot and lock refusals reject the whole batch. `INVALID_VALUE`, `FACT_CONFLICT`, `MISSING_FACT` and `HUMAN_ATTESTATION_REQUIRED` are reported per fact. An untested jurisdiction returns `ok: true` with a decline payload and no rules.
 3. Deal id and role are never inputs; the orchestrator injects them.
 4. The next question is chosen in code by unblock count, in a new function in `rules.js`. The browser's `nextQ()` is unchanged. The tie-break is question order.
