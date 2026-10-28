@@ -1,6 +1,6 @@
 # Issues: role-based chat agent
 
-69 tickets: 31 done, 32 to do, 5 blocked, 1 closed (032). Source of requirements: `.scratch/role-based-chat-agent/spec.md`, `.claude/CONTEXT.MD`, ADRs 0001 to 0006, `backend/reminders.md`. Words follow `GLOSSARY.md`.
+74 tickets: 35 done, 33 to do, 5 blocked, 1 closed (032). Source of requirements: `.scratch/role-based-chat-agent/spec.md`, `.claude/CONTEXT.MD`, ADRs 0001 to 0006, `backend/reminders.md`. Words follow `GLOSSARY.md`.
 
 | # | Title | Status | Depends on | Owner |
 |---|-------|--------|------------|-------|
@@ -36,14 +36,16 @@
 | 027d | [Four per-role system prompts](027d-per-role-system-prompts.md) | done | 027c | human |
 | 028 | [Owner sets environment variables](028-owner-sets-environment-variables.md) | todo | 021, 027b | human |
 | 028a | [One manual real model run](028a-one-manual-real-model-run.md) | todo | 027b, 027c, 028 | human |
-| 029 | [Chat panel in the app](029-chat-panel-in-the-app.md) | todo (029a done: panel; history read open) | 027a | agent |
+| 029 | [Chat panel in the app](029-chat-panel-in-the-app.md) | done | 027a | agent |
+| 029b | [Chat history read](029b-chat-history-read.md) | todo | 029 | agent |
+| 029c | [Show chat history in `index_v2.html`](029c-show-chat-history-in-index-v2.md) | todo | 029b, 063 | agent |
 | 030 | [No-legal-advice code guard](030-no-legal-advice-guard.md) | done | 027c | agent |
 | 030a | [Polite off-topic refusal](030a-polite-off-topic-refusal.md) | done | 027d, 030 | agent |
 | 031 | [Broker can ask the assistant about the deal (`get_deal`)](031-get-deal-scoped-to-role.md) | done | 024, 025, 027c | agent |
 | 031a | [Buyer-attack handler tests](031a-buyer-attack-handler-tests.md) | done | 031 | agent |
 | 032 | [Tool-call limits and repeat stop](032-tool-call-limits-and-repeat-stop.md) | closed by 027c; logging moves to 062 | 027c | agent |
 | 033 | [`ask_next_question` picks the question in code](033-ask-next-question-by-unblock-count.md) | done | 024, 031 | agent |
-| 034 | [`save_answers` saves a fact](034-save-answers-saves-a-fact.md) | todo | 033 | agent |
+| 034 | [`save_answers` saves a fact](034-save-answers-saves-a-fact.md) | done | 033 | agent |
 | 035 | [Forms with no template are flagged, not filled](035-untemplated-forms-flagged-not-filled.md) | todo | 034 | agent |
 | 036 | [`save_answers` field-name guard and batch cap](036-save-answers-field-guard-and-batch-cap.md) | todo | 034 | agent |
 | 037 | [`save_answers` write refusals](037-save-answers-write-refusals.md) | todo | 034, 023 | agent |
@@ -53,13 +55,15 @@
 | 041 | [Workflow status panel shows the stages](041-workflow-status-panel-stages.md) | todo | 025, 029, 031 | agent |
 | 042 | [Evaluation against the Cottage Grove deal](042-evaluation-against-cottage-grove.md) | todo | 038, 040 | agent |
 | 043 | [Request approval and the broker's Approve click](043-request-approval-and-approve-click.md) | todo | 023, 029, 031 | agent |
-| 044 | [Deploy and smoke-test demo mode](044-deploy-and-smoke-test-demo-mode.md) | todo | 028, 030, 042, 043 | human |
+| 043b | [Approve button in `index_v2.html`](043b-approve-button-in-index-v2.md) | todo | 043, 063 | agent |
+| 044 | [Deploy and smoke-test demo mode](044-deploy-and-smoke-test-demo-mode.md) | todo | 028, 030, 042, 043, 064 | human |
 | 045 | [Tune the limits with the owner](045-tune-limits-with-owner.md) | todo | 044 | human |
 | 046 | [Freeze snapshot and Reopen buttons](046-freeze-snapshot-and-reopen-buttons.md) | todo | 023, 037, 043 | agent |
 | 047 | [Release forms button](047-release-forms-button.md) | todo | 043 | agent |
 | 048 | [Waive a form or override a refusal button](048-waive-or-override-button.md) | todo | 043 | agent |
 | 049 | [Send a message button](049-send-message-button.md) | todo | 043 | agent |
-| 050 | [`ask_broker` hands a question to the broker](050-ask-broker-inbox.md) | todo | 031 | agent |
+| 050 | [`ask_broker` hands a question to the broker](050-ask-broker-inbox.md) | done | 031 | agent |
+| 050b | [Broker inbox view in `index_v2.html`](050b-broker-inbox-view-in-index-v2.md) | todo | 050, 063 | agent |
 | 051 | [Status and form explanations for seller, buyer and lender](051-status-and-explanations-for-other-roles.md) | todo | 050 | agent |
 | 052 | [Seller answers intake questions](052-seller-answers-intake.md) | todo | 034, 051 | agent |
 | 053 | [Buyer acknowledges a disclosure](053-buyer-acknowledges-disclosure.md) | todo | 051 | agent |
@@ -71,8 +75,9 @@
 | 059 | [Write events to the platform's audit log](059-write-events-to-platform-audit-log.md) | blocked | 026, 027 | agent |
 | 060 | [Real loan-checklist code for the Lender](060-real-lender-checklist-code.md) | blocked | 055 | agent |
 | 061 | [Remove `aiagent` and add `lender` in the Kialae `scope.js`](061-remove-aiagent-from-kialae-scope.md) | blocked | 014 | human |
-| 062 | [Log refused turns (rate limit, daily cap, call limit, tool-call limit, repeat stop) and tool calls in events.js](062-log-refused-turns.md) | todo | 027c | agent |
+| 062 | [Log refused turns (rate limit, daily cap, call limit, tool-call limit, repeat stop) and tool calls in events.js](062-log-refused-turns.md) | done | 027c | agent |
 | 063 | [Port the chat panel and role switcher to `index_v2.html`](063-port-chat-and-role-switcher-to-index-v2.md) | todo | 029 | agent |
+| 064 | [Keep question text and other free text out of event payloads](064-keep-free-text-out-of-event-payloads.md) | todo | 062 | agent |
 
 ## Why this order
 

@@ -1,5 +1,5 @@
 # 062: Log refused turns (rate limit, daily cap, call limit, tool-call limit, repeat stop) and tool calls in events.js
-Status: todo | Depends on: 027c | Owner: agent | Size: S
+Status: done | Depends on: 027c | Owner: agent | Size: S
 
 ## What solving this does
 
@@ -10,7 +10,7 @@ Files: modify `backend/events.js`, `backend/model_gate.js`, `backend/agent_handl
 ## Scope
 
 In: One new event type for a refused turn or call, logged with the session's role, session and deal, with the reason (`rate_limit`, `daily_cap`, `call_limit`, `tool_call_limit`, `repeat_call`) in a redacted payload.
-Also in: the existing `tool_start` and `tool_end` events, written by the loop, for every tool call, with the tool name, arguments and result in a redacted payload (error results included).
+Also in: the existing `tool_start` and `tool_end` events, written by the loop, for every tool call. They carry the tool name, the call id, an error flag and the result size, and never the arguments or the result text (error results included).
 Also in: log when the legal guard fires (030, `legal_guard.js`, status `LEGAL_JUDGMENT`, reason `legal_guard`), and when the off-topic rule is used if it can be detected (it is a prompt rule with no status code, so it may not be detectable; say so if not).
 Out: The limits themselves (027a and 027c; 032 is closed by 027c); the audit page layout (010).
 
@@ -22,7 +22,7 @@ Out: The limits themselves (027a and 027c; 032 is closed by 027c); the audit pag
 4. Every refusal event carries the session's role and deal, never a value from the request body.
 5. When the loop ends a turn at the 21st tool call, one refusal event is logged with reason `tool_call_limit`; when it ends a turn on the third identical call, one is logged with reason `repeat_call`. Both carry the session's role and deal.
 6. No key appears in a refusal event.
-7. Every tool call the loop runs logs a `tool_start` and `tool_end` event (name, arguments, result or error) with the session's role and deal, no key in the payload.
+7. Every tool call the loop runs logs a `tool_start` and `tool_end` event with the session's role and deal and no key in the payload. The payload holds the tool name, the call id, an error flag and the result size, and never the arguments or the result text.
 8. When the legal guard replaces a reply with the refusal, one refusal event is logged with reason `legal_guard`, with the session's role and deal. When the off-topic rule is used and the code can detect it, one is logged too; if it cannot be detected, the ticket notes why.
 
 ## Tests

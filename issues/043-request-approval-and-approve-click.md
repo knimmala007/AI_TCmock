@@ -5,7 +5,7 @@ Status: todo | Depends on: 023, 029, 031 | Owner: agent | Size: M
 
 The assistant can ask for approval, but only the broker can grant it, with a button. Handing the package to another role is refused until then.
 
-Files: create `backend/approvals.js`, `api/approve.js`, `backend/tests/approvals.test.js` | modify `backend/tools.js`, `index.html` (Approve button) | reference `backend/status.js`, `backend/repository.js`
+Files: create `backend/approvals.js`, `api/approve.js`, `backend/tests/approvals.test.js` | modify `backend/tools.js` | reference `backend/status.js`, `backend/repository.js`
 
 ## Scope
 
@@ -34,3 +34,5 @@ handler: each role presses Approve; scripted model calls `hand_off` before and a
 ## Notes
 
 Pattern for tickets 046 to 049.
+
+The Approve button is not built here: it moves to ticket 043b (`index_v2.html`), which waits on 043 and the port ticket 063. This ticket delivers the endpoint and the tool; until 043b the endpoint is reachable only by a direct call.

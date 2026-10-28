@@ -187,13 +187,15 @@ plain message to the user.
 it saves and validates in one call, which cuts latency. The jurisdiction check
 and the field-name guard therefore run inside `save_answers`. (There is one
 tool, `save_answers`, for every role that saves. The earlier singular
-`save_answer` was a naming error and is gone.)
+`save_answer` was a naming error and is gone.) `save_answers` is built (034) for one
+fact per call; the batch cap, field-name guard, write refusals, jurisdiction check and
+attestation (tickets 035 to 039) are not built yet.
 
 **Other roles:**
 
 | Tool | Role | Purpose |
 |------|------|---------|
-| `ask_broker` | Seller, Buyer, Lender | Hands a question to a person. This is the deck's "request" and the polite way to refuse out-of-scope or legal questions. |
+| `ask_broker` | Seller, Buyer, Lender | Hands a question to a person. This is the deck's "request" and the polite way to refuse out-of-scope or legal questions. Returns only `{ticket_id, status: "queued"}`; the question goes to the broker inbox, a store separate from the deal file, and the broker reads it at `GET /api/inbox` (no model call). Built in 050. |
 | `acknowledge_disclosure` | Buyer | Records that the buyer opened and acknowledged a form. |
 | `mark_clear_to_close` | Lender | Updates the loan step. |
 | `get_deal_status`, `explain_form`, `ask_next_question`, `save_answers` | Seller (the first two also for Buyer and Lender) | Same tools, with the role filter limiting which keys and forms they touch. |
@@ -212,7 +214,8 @@ were corrected to match.
 
 The registry is `backend/roles.js`. **Log** is cross-cutting, not a model-callable
 tool (see Logging). `message` is not a tool; people are reached via `ask_broker`
-and `hand_off`.
+and `hand_off`. A question handed to `ask_broker` is read by the broker through
+`GET /api/inbox`, never through a model call.
 
 ### Jurisdiction check — enforced in code, not just the prompt
 `save_answers` computes `jurisdiction_status: tested | untested` from a config
@@ -319,8 +322,13 @@ not a rule.)
 
 ### Logging (decided)
 One `agent_events` log (`backend/events.js`, storage injected) and one `logEvent`
-helper, called from three places: before and after each model call, and around
-each tool execution. Payloads are redacted (API keys) before they are written.
+helper, called before and after each model call, around each tool execution, and
+when a turn is refused. Payloads are redacted (API keys) before they are written.
+`tool_start` and `tool_end` carry the tool name, the call id, an error flag and the
+result size, never the arguments or the result text. `turn_refused` carries a reason
+code only (`rate_limit`, `daily_cap`, `call_limit`, `tool_call_limit`, `repeat_call`,
+`legal_guard`), written since ticket 062. Model-call events still hold the prompt,
+the messages and the reply, so free text can reach the log until ticket 064.
 This replaces the earlier JSONL-per-session plan (ADR 0004).
 
 **Audit page (built):** the broker view has an **Audit log** button that opens
@@ -414,9 +422,9 @@ Decided: runtime is Node (option a). The agent loop and tools are ES modules, an
 for events, but its shape is not known in this repo.
 
 1. Full function signatures for every tool in the registry. Partly decided: the
-   envelope, `save_answers`, `ask_broker`, `explain_form`, `request_approval` and the
-   next-question rule are in ADR 0008; the other tools' inputs and outputs are still
-   open (ticket 024).
+   envelope, `save_answers`, `explain_form`, `request_approval` and the
+   next-question rule are in ADR 0008 (`ask_broker` is built, ticket 050); the other tools'
+   inputs and outputs are still open (ticket 024).
 2. Decided (ADR 0007, reminders Q-c): approvals, locks and the snapshot carry who and
    when at the paths `status.js` reads. `status.js` `guardAction` still has to change
    (reminders R16).

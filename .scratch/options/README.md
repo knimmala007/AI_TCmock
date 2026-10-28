@@ -1,4 +1,5 @@
 # Options memos and the tickets their decisions change
+> The 050 row below is superseded by ADR 0008 as amended on 2026-10-27 (the inbox is its own store, not on the deal file).
 
 Decided Oct 25 2026. No ticket is marked done. Each ticket 023-026 stays `todo` until its spec/CONTEXT edits are made.
 

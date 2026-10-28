@@ -103,6 +103,7 @@ It is built from scratch with a hand-written loop (no agent framework, not a mes
 - Seller: `get_deal_status`, `explain_form`, `ask_next_question`, `save_answers`, `ask_broker`.
 - Buyer: `get_deal_status`, `explain_form`, `acknowledge_disclosure`, `ask_broker`.
 - Lender: `get_deal_status`, `explain_form`, `mark_clear_to_close`, `ask_broker`.
+- `ask_broker` (seller, buyer, lender) returns only `{ticket_id, status: "queued"}`; the question goes to the broker inbox (see Broker inbox).
 - Every tool returns one envelope, `{ok, data?, error?: {code, message, next_step}, field_names?}`; `save_answers` returns a per-fact array in `data`; the next question is chosen in code by unblock count (ADR 0008).
 - What each role may see: the broker sees every document, both sides of the deal; the seller sees seller-side and shared documents; the buyer sees buyer-side and shared documents; the lender sees only the loan file (today, the appraisal). The same rule is used by the app's page and by the agent's role registry.
 - The shared rules require the appraisal when the buyer is financing. The intake asks "Is the buyer financing the purchase with a lender loan?"; "Yes, with a lender loan" adds the appraisal and "No, all cash" adds nothing. This is what gives the Lender a form to see.
@@ -143,9 +144,16 @@ It is built from scratch with a hand-written loop (no agent framework, not a mes
 - Approval is granted per action and only by the broker's Approve click, never by a tool the model can call.
 
 **Logging**
-- One event log with one logging helper, called before and after each model call and around each tool execution. Payloads are redacted for API keys before they are written.
+- One event log with one logging helper, called before and after each model call, around each tool execution, and when a turn is refused. Payloads are redacted for API keys before they are written.
+- `tool_start` and `tool_end` carry the tool name, the call id, an error flag and the result size, never the arguments or the result text. `turn_refused` carries a reason code only (rate limit, daily cap, call limit, tool-call limit, repeated call, legal guard). Model-call events still hold the prompt, the messages and the reply, so free text can reach the log until ticket 064.
 - A broker-only audit page lists a turn's events. The broker view has an Audit log button that opens it. It is broker-only twice over: the button is not rendered for any other role, and the endpoint re-checks the session role and returns a refusal otherwise (a forbidden response for seller, buyer and lender; unauthenticated with no session). It shows only events for the session's own deal and escapes everything it prints.
 - The platform's existing audit log is the intended real sink; its shape is not yet known here, so events are stored as one list per turn in Upstash. Storage is injected so tests and local development use memory or a file; file storage is for local development only.
+
+**Broker inbox**
+- `ask_broker` stores the question in the broker inbox: its own store, separate from the deal file and keyed by deal id. An item holds the ticket id, the asking role, the time and the question. The asking role and the deal come only from the session.
+- The question text is never delivered to any model call except the asker's own turn. The broker reads it through a broker-only `GET /api/inbox`, which re-checks the signed session's role on every request and makes no model call. The broker's `get_deal` shows only the ticket id, role and time.
+- The longest question and the most items per deal are limits in `config.js` (2000 characters, 50 items); a question over either is refused with fixed text.
+- Expiry, an answered state and removing items are not built yet; replies come with ticket 049.
 
 **Data and platform**
 - One shared fixture file, a generated JavaScript module that is imported like any other (so it is bundled), serves both the agent and the evals. It is generated from the app and the rules module and never hand-edited. The real deal is the Cottage Grove transaction: 44 real form codes, 42 with an executed PDF, with permit history and tenancy status never received. The Austin deal is explicitly synthetic and exercises the untested path.

@@ -1,5 +1,5 @@
 # 044: Deploy and smoke-test demo mode
-Status: todo | Depends on: 028, 030, 042, 043 | Owner: human | Size: M
+Status: todo | Depends on: 028, 030, 042, 043, 064 | Owner: human | Size: M
 
 ## What solving this does
 

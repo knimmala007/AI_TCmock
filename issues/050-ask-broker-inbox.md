@@ -1,5 +1,5 @@
 # 050: `ask_broker` hands a question to the broker
-Status: review pending | Depends on: 031 | Owner: agent | Size: M
+Status: done | Depends on: 031 | Owner: agent | Size: M
 
 ## What solving this does
 

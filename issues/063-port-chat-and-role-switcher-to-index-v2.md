@@ -30,4 +30,4 @@ Ticket 029 (chat panel); `backend/reminders.md` R6 (demo session, `syncDemoRole`
 
 ## Notes
 
-README shows 029 as `todo (029a done: panel; history read open)`, so this ticket formally waits on it. `index_v2.html` has no `fetch(` today, so everything is a port, not a merge.
+029 is done; the history read is ticket 029b and is not required for 063. `index_v2.html` has no `fetch(` today, so everything is a port, not a merge.
