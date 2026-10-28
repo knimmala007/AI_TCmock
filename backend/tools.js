@@ -41,6 +41,8 @@ const isUntested = deal => !isTestedJurisdiction(deal.city, deal.county);
 // never counts them as candidates. Ticket 039 enforces the save side; the list is a constant here, not a rules.js flag.
 export const ATTESTATION_FIELDS = Object.freeze(['waterHeater', 'smokeAlarm', 'coDetector']);
 export const NO_QUESTIONS_LEFT = 'No unanswered questions are left for this deal.';
+// Questions remain, but only ones chat cannot answer (a document upload, with or without a missing template). Never "all answered".
+export const ONLY_UNCHATTABLE_LEFT = 'No more questions can be asked in chat. Questions remain that need a document upload or a form template, so they cannot be answered here.';
 // Only untemplated-form questions remain. Fixed text: no deal data and no form names.
 export const ONLY_UNTEMPLATED_LEFT = 'No more questions can be asked right now. Some forms still need a template, so they cannot be filled yet.';
 
@@ -59,6 +61,10 @@ const feedsOnlyUntemplated = (role, engine, q) => {
 // so asking would send the model round in a circle. Same rule as checkWrite, so the two cannot disagree.
 const untemplatedOnly = (role, engine) => engine.QUESTIONS.filter(q => feedsOnlyUntemplated(role, engine, q)).map(q => q.k);
 
+// Questions that need a document upload are never offered in chat and never saved from chat (ticket 039): the rules turn a
+// typed answer to one into the statutory zone answers it supplies, which only a report may state.
+const docOnly = engine => engine.QUESTIONS.filter(q => q.type === 'doc').map(q => q.k);
+
 // No input: the deal and the role are not arguments, so nothing the model passes is read.
 const NO_INPUT = { type: 'object', properties: {}, additionalProperties: false };
 
@@ -66,6 +72,17 @@ const NO_INPUT = { type: 'object', properties: {}, additionalProperties: false }
 const SOURCE_BY_ROLE = Object.freeze({ seller: 'Seller chat answer', broker: 'Broker chat answer' });
 
 const BAD_SAVE_ARGS = `save_answers takes {"answers": [{"field_name": text, "value": text}]} with 1 to ${MAX_FACTS_PER_SAVE} answers, each field name once.`;
+// Ticket 039. Fixed text: none of it echoes the value or the field name the model sent, and none shows a stored value.
+export const HUMAN_ATTESTATION = fail('HUMAN_ATTESTATION_REQUIRED',
+  'This is a seller certification. Only the seller can state it, so it cannot be saved from this session.',
+  'Do not retry. The seller must answer it in their own session; a person completes it.');
+export const INVALID_CHOICE = fail('INVALID_VALUE', 'That value is not one of the options for this question, so nothing was saved.',
+  'Ask the user again and pass exactly one of the options that ask_next_question gave you.');
+export const DOC_NOT_IN_CHAT = fail('INVALID_VALUE', 'This question needs a document upload, so it cannot be answered in chat.',
+  'Do not retry. Use ask_next_question for the next question.');
+export const FACT_CONFLICT = fail('FACT_CONFLICT', 'That answer conflicts with a fact already on the deal, so nothing was saved.',
+  'Do not overwrite it. Tell the user it conflicts with a recorded fact and the broker must resolve it.');
+
 const UNKNOWN_SAVE_FIELD = 'That field name is not a question on this deal. Use ask_next_question to get the next one.';
 const EMPTY_SAVE_VALUE = 'That answer was empty, so nothing was saved.';
 
@@ -227,6 +244,55 @@ function checkWrite(role, deal, engine, q) {
   return null;
 }
 
+// Sources the engine writes for an answer (rules.js answer()): the chat roles above, 'Chat answer', 'Broker intake' (the app's
+// form), 'Uploaded document', and 'Derived from ...' (the rules overwrite those themselves). A re-answer in chat replaces a
+// chat answer, whoever gave it, and the earlier value is not kept. Only these two are protected from a chat answer.
+const PROTECTED_ANSWER_SOURCES = new Set(['Broker intake', 'Uploaded document']);
+const isChatSource = src => src === 'Chat answer' || Object.values(SOURCE_BY_ROLE).includes(src);
+const isDerivedSource = src => /^Derived/.test(String(src));
+const fold = s => String(s).normalize('NFD').replace(/\p{M}/gu, '').trim().toLowerCase();
+
+// Questions whose deal.data key is the question key. defects, occupancy, escrow and claims land under other keys inside
+// rules.js (INTAKE_TO_DEAL, not exported), so a recorded fact for those four is not compared (reminder).
+const DATA_KEY_IS_QUESTION_KEY = new Set(['seller', 'address', 'county', 'apn', 'repairs', 'listingAgent', 'permitHistory',
+  'waterHeater', 'smokeAlarm', 'treeStatus', 'pool', 'solar']);
+
+// The fact already on the deal for this question: the stored answer, else a recorded fact under the same key. It is
+// "protected" when a chat answer must not replace it. A recorded value that is not one of a choice question's options
+// cannot be compared with an option, so it protects nothing.
+function existingFact(deal, q) {
+  const answer = (deal.answers || {})[q.k];
+  if (answer) return { v: answer.v, protect: PROTECTED_ANSWER_SOURCES.has(answer.src) };
+  const record = DATA_KEY_IS_QUESTION_KEY.has(q.k) && deal.data ? deal.data[q.k] : null;
+  if (!record || isChatSource(record.src) || isDerivedSource(record.src)) return null;
+  const comparable = q.type !== 'choice' || (q.options || []).some(o => fold(o) === fold(record.v));
+  return { v: record.v, protect: comparable };
+}
+
+// Per fact, after the write guards (checkWrite). The order is attestation, document, option, conflict. Returns an error
+// envelope, or null when the value may be saved. Role comes from the turn only.
+function checkValue(role, deal, q, value) {
+  if (ATTESTATION_FIELDS.includes(q.k) && role !== 'seller') return HUMAN_ATTESTATION;
+  if (q.type === 'doc') return DOC_NOT_IN_CHAT;
+  if (q.type === 'choice' && !(q.options || []).includes(value)) return INVALID_CHOICE;
+  const existing = existingFact(deal, q);
+  if (existing && existing.protect && fold(existing.v) !== fold(value)) return FACT_CONFLICT;
+  // The rules never overwrite a typed value with a derived one, so answering city after a different typed county would
+  // leave the deal contradicting itself (San José in Alameda).
+  for (const [key, derived] of Object.entries(q.derives ? q.derives(value) : {})) {
+    const cur = (deal.answers || {})[key];
+    if (derived && cur && !isDerivedSource(cur.src) && fold(cur.v) !== fold(derived)) return FACT_CONFLICT;
+  }
+  return null;
+}
+
+// True when the answer already on the deal is a protected fact with this same value: nothing to write, and a chat answer
+// must not replace its source (that would let a second call overwrite it).
+function confirmsProtectedFact(deal, q, value) {
+  const existing = existingFact(deal, q);
+  return Boolean(existing && existing.protect && fold(existing.v) === fold(value));
+}
+
 // The required forms this fact feeds that have no template, limited to the role's view. Never filled.
 const flaggedFormsOf = (role, engine, q) => formsFedBy(role, engine, q).flagged;
 
@@ -281,11 +347,13 @@ export function createTools({ repository, seenFields, inbox }) {
     const engine = engineFor(deal);
     const roleSkip = turn.role === 'seller' ? [] : ATTESTATION_FIELDS;
     const formFilter = code => canAccessForm(turn.role, code);
-    const next = engine.nextByUnblock({ skip: [...roleSkip, ...untemplatedOnly(turn.role, engine)], formFilter });
+    const next = engine.nextByUnblock({ skip: [...roleSkip, ...untemplatedOnly(turn.role, engine), ...docOnly(engine)], formFilter });
     if (!next) {
-      // Say why: a question was held back only because its forms have no template, or every question is answered.
+      // Say why: a question was held back because it needs a document upload, or because its forms have no template, or
+      // every question is answered. Never claim "all answered" while a question that chat cannot ask remains.
       const held = engine.nextByUnblock({ skip: roleSkip, formFilter });
-      const message = held ? ONLY_UNTEMPLATED_LEFT : NO_QUESTIONS_LEFT;
+      const heldDoc = engine.nextByUnblock({ skip: [...roleSkip, ...untemplatedOnly(turn.role, engine)], formFilter });
+      const message = !held ? NO_QUESTIONS_LEFT : heldDoc ? ONLY_UNCHATTABLE_LEFT : ONLY_UNTEMPLATED_LEFT;
       return { ok: true, data: redactDeal({ done: true, message }), field_names: [] };
     }
     const { question: q, unblocks } = next;
@@ -318,8 +386,9 @@ export function createTools({ repository, seenFields, inbox }) {
         done.push({ refusal: fail('UNKNOWN_FIELD', UNKNOWN_SAVE_FIELD, UNSEEN_NEXT_STEP) });
         continue;
       }
-      const refusal = checkWrite(turn.role, deal, engine, q);
+      const refusal = checkWrite(turn.role, deal, engine, q) || checkValue(turn.role, deal, q, value);
       if (refusal) { done.push({ refusal }); continue; }
+      if (confirmsProtectedFact(deal, q, value)) { done.push({ q, value, result: { added: [], removed: [], filled: [] }, unchanged: true }); continue; }
       const result = engine.answer(q.k, value, SOURCE_BY_ROLE[turn.role] ?? 'Chat answer');
       if (!result) {
         if (single) throw new ToolArgsError(EMPTY_SAVE_VALUE);
@@ -332,7 +401,7 @@ export function createTools({ repository, seenFields, inbox }) {
     const stored = done.filter(d => !d.refusal);
     // Nothing stored: the first refusal's own envelope (for one fact, exactly what it always was).
     if (!stored.length) return done[0].refusal;
-    await repository.save(deal);
+    if (stored.some(d => !d.unchanged)) await repository.save(deal);
 
     // Filter to the role first, then redact. The forms a role cannot see are not named to it.
     const visible = codes => codes.filter(code => canAccessForm(turn.role, code));

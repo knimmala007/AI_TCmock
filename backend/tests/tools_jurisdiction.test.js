@@ -88,9 +88,13 @@ test('Cottage Grove (San Jose) proceeds: get_deal, ask_next_question and save_an
   assert.ok(view.data.forms.length > 0 && view.field_names.length > 0);
   assert.strictEqual(next.ok, true);
   const name = next.data.question.field_name;
-  const saved = await w.say('broker', TESTED, [save(name, 'x')]);
+  // Cottage Grove has a recorded fact for this question (ticket 039): saving a different value would be a FACT_CONFLICT, so
+  // the user confirms the recorded one. It proceeds (ok), and the recorded fact and its source are left as they were.
+  const recorded = SEED_DEALS[TESTED].data[name];
+  assert.ok(recorded, `${name} has a recorded fact`);
+  const saved = await w.say('broker', TESTED, [save(name, recorded.v)]);
   assert.strictEqual(saved.es[0].ok, true, saved.raw[0]);
-  assert.strictEqual((await w.repository.get(TESTED)).answers[name].v, 'x');
+  assert.deepStrictEqual((await w.repository.get(TESTED)).data[name], recorded);
 });
 
 test('Austin returns the decline payload, and the payload holds no rules, no deal data and no city or county', async () => {

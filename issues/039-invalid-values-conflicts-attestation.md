@@ -1,5 +1,5 @@
 # 039: Invalid values, conflicts and attestation
-Status: todo | Depends on: 034, 025 | Owner: agent | Size: M
+Status: review pending | Depends on: 034, 025 | Owner: agent | Size: M
 
 ## What solving this does
 
