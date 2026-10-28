@@ -50,3 +50,5 @@ When the user asks for the checkpoint agent on a ticket, run it, show its full r
 8. Exceptions: an edit outside the Files line, or to the README, reminders, spec, CONTEXT or an ADR, is
    allowed only when the owner asks for it in that session. List every such edit in the report under
    "outside the Files line" so the checkpoint can match it to the owner's request.
+
+Do not edit anything under docs/plan/.
