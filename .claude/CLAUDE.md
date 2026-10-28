@@ -29,8 +29,7 @@ Run npm test before starting (baseline) and before finishing.
 Touch only the files in the ticket's Files line.
 Never commit, push, or edit .env*, .claude/settings.json, vercel.json, or Vercel/, or without asking.
 Clerk/Upstash settings. Never call the real model API in tests.
-When finished: set the ticket to done, update issues/README.md and the matching
-row in backend/reminders.md, and report the test result.
+When finished, report the test result.
 If docs and code disagree, stop and report; do not choose silently.
 ## Checkpoint before every commit
 When the user asks for the checkpoint agent on a ticket, run it, show its full report to the user, and wait. Do not stage, commit, merge, delete a worktree or start another ticket. The user commits and merges.
