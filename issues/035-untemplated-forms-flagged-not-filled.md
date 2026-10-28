@@ -1,5 +1,5 @@
 # 035: Forms with no template are flagged, not filled
-Status: todo | Depends on: 034 | Owner: agent | Size: S
+Status: review pending | Depends on: 034 | Owner: agent | Size: S
 
 ## What solving this does
 
@@ -15,7 +15,7 @@ Out: Creating templates.
 ## Acceptance criteria
 
 1. Writing to any of the 13 codes does nothing and says the form needs a template.
-2. `get_deal` and `flag_missing` list them as flagged.
+2. `get_deal` lists them as flagged (`has_template: false`). The `flag_missing` listing is ticket 040.
 
 ## Tests
 
