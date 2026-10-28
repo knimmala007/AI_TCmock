@@ -1,5 +1,5 @@
 # 063: Port the chat panel and role switcher to `index_v2.html`
-Status: todo | Depends on: 029 | Owner: agent | Size: M
+Status: review pending | Depends on: 029 | Owner: agent | Size: M
 
 ## What solving this does
 
