@@ -372,3 +372,34 @@ test('035: when every question is answered, the message is still NO_QUESTIONS_LE
   const next = await run('broker', [{}], { deal, name: 'ask_next_question' });
   assert.strictEqual(next.e.data.message, NO_QUESTIONS_LEFT);
 });
+
+test('035: ask_next_question and save_answers agree: nothing offered is refused with NO_TEMPLATE', async () => {
+  const deals = [
+    sf({ city: 'San Francisco' }),
+    sf({ city: 'Los Angeles', occupancy: 'Tenant-occupied' }),
+    sf({ city: 'San José', occupancy: 'Tenant-occupied' }),
+  ];
+  for (const base of deals) {
+    const walk = structuredClone(base);
+    const offered = [];
+    for (let i = 0; i < 60; i++) {
+      const n = await run('broker', [{}], { deal: structuredClone(walk), name: 'ask_next_question' });
+      const q = n.e.data.question;
+      if (!q) break;
+      offered.push(q.field_name);
+      walk.answers[q.field_name] = { v: 'x', src: 'test' };
+    }
+    assert.ok(offered.length > 5);
+    for (const key of offered) {
+      const saved = await run('broker', [one(key, 'x')], { deal: structuredClone(base) });
+      assert.notStrictEqual(saved.e.error && saved.e.error.code, 'NO_TEMPLATE', key);
+    }
+  }
+});
+
+test('035: guards run on the templated forms a fact feeds only; a lock on an untemplated form does not refuse it', async () => {
+  const deal = sf({ city: 'San Francisco' }, { locks: { 'SF-3R': { reason: 'under_review' } } });
+  const t = await run('broker', [one('apn', '123-45-678')], { deal });
+  assert.strictEqual(t.e.ok, true);
+  assert.deepStrictEqual(t.e.data.flagged_forms, ['SF-3R']);
+});

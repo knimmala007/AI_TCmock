@@ -34,10 +34,20 @@ export const NO_QUESTIONS_LEFT = 'No unanswered questions are left for this deal
 // Only untemplated-form questions remain. Fixed text: no deal data and no form names.
 export const ONLY_UNTEMPLATED_LEFT = 'No more questions can be asked right now. Some forms still need a template, so they cannot be filled yet.';
 
+// The required forms a fact feeds that this role may see, split by whether the form has a template. The one rule
+// behind checkWrite (refuse or save), flaggedFormsOf (what is reported) and ask_next_question (what is offered).
+function formsFedBy(role, engine, q) {
+  const required = engine.requiredForms().filter(code => (q.fills || []).includes(code) && canAccessForm(role, code));
+  return { templated: required.filter(hasTemplate), flagged: required.filter(code => !hasTemplate(code)) };
+}
+const feedsOnlyUntemplated = (role, engine, q) => {
+  const { templated, flagged } = formsFedBy(role, engine, q);
+  return flagged.length > 0 && !templated.length;
+};
+
 // Questions that feed only forms with no template are never offered: save_answers would refuse the answer (NO_TEMPLATE),
-// so asking would send the model round in a circle.
-const untemplatedOnly = engine => engine.QUESTIONS
-  .filter(q => (q.fills || []).length && q.fills.every(code => !hasTemplate(code))).map(q => q.k);
+// so asking would send the model round in a circle. Same rule as checkWrite, so the two cannot disagree.
+const untemplatedOnly = (role, engine) => engine.QUESTIONS.filter(q => feedsOnlyUntemplated(role, engine, q)).map(q => q.k);
 
 // No input: the deal and the role are not arguments, so nothing the model passes is read.
 const NO_INPUT = { type: 'object', properties: {}, additionalProperties: false };
@@ -147,11 +157,10 @@ function checkWrite(role, deal, engine, q) {
     return fail(STATUS.FORM_NOT_REQUIRED, 'That question does not apply to this deal.',
       'Do not save it. Use ask_next_question to get the next question.');
   }
-  const required = engine.requiredForms().filter(code => forms.includes(code));
   // A fact that feeds only forms with no template is flagged and not saved. A fact that also feeds a templated form is
-  // saved; the guards run on the templated forms only, and the untemplated ones are reported as flagged (see flaggedFormsOf).
-  const templated = required.filter(hasTemplate);
-  if (required.length && !templated.length) return NO_TEMPLATE;
+  // saved; the guards run on the templated forms only, and the untemplated ones are reported as flagged.
+  if (feedsOnlyUntemplated(role, engine, q)) return NO_TEMPLATE;
+  const { templated } = formsFedBy(role, engine, q);
   for (const formCode of templated) {
     const r = guardWrite({ role, deal, engine, formCode });
     if (r) return fail(r.error, r.message, r.next_step);
@@ -160,8 +169,7 @@ function checkWrite(role, deal, engine, q) {
 }
 
 // The required forms this fact feeds that have no template, limited to the role's view. Never filled.
-const flaggedFormsOf = (role, engine, q) =>
-  (q.fills || []).filter(code => engine.requiredForms().includes(code) && canAccessForm(role, code) && !hasTemplate(code));
+const flaggedFormsOf = (role, engine, q) => formsFedBy(role, engine, q).flagged;
 
 // The one fact in the call, or a ToolArgsError. Only these two strings are read; anything else the model sends is ignored.
 function oneAnswer(args) {
@@ -192,7 +200,7 @@ export function createTools({ repository, seenFields, inbox }) {
     const engine = engineFor(deal);
     const roleSkip = turn.role === 'seller' ? [] : ATTESTATION_FIELDS;
     const formFilter = code => canAccessForm(turn.role, code);
-    const next = engine.nextByUnblock({ skip: [...roleSkip, ...untemplatedOnly(engine)], formFilter });
+    const next = engine.nextByUnblock({ skip: [...roleSkip, ...untemplatedOnly(turn.role, engine)], formFilter });
     if (!next) {
       // Say why: a question was held back only because its forms have no template, or every question is answered.
       const held = engine.nextByUnblock({ skip: roleSkip, formFilter });
