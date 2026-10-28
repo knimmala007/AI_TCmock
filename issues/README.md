@@ -77,7 +77,7 @@
 | 061 | [Remove `aiagent` and add `lender` in the Kialae `scope.js`](061-remove-aiagent-from-kialae-scope.md) | blocked | 014 | human |
 | 062 | [Log refused turns (rate limit, daily cap, call limit, tool-call limit, repeat stop) and tool calls in events.js](062-log-refused-turns.md) | done | 027c | agent |
 | 063 | [Port the chat panel and role switcher to `index_v2.html`](063-port-chat-and-role-switcher-to-index-v2.md) | todo | 029 | agent |
-| 064 | [Keep question text and other free text out of event payloads](064-keep-free-text-out-of-event-payloads.md) | todo | 062 | agent |
+| 064 | [Only the broker can read logged free text (tests and the inbox property)](064-keep-free-text-out-of-event-payloads.md) | todo | 062 | agent |
 
 ## Why this order
 
