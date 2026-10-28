@@ -40,9 +40,11 @@ const chat = (cookie, message = 'hi') => new Request('http://x/api/agent', {
   method: 'POST', body: JSON.stringify({ message }), headers: { 'content-type': 'application/json', cookie },
 });
 
+// Ticket 038: the seeded Austin deal is an untested jurisdiction, so these tests keep its data and set a tested city.
+const TESTED_CITY = { city: 'San Jose', county: 'Santa Clara' };
 // A copy of a seeded deal with extra keys; a session can only name a seeded deal id.
 const variant = (extra = {}, answers = {}) => ({
-  ...structuredClone(SEED_DEALS[DEAL]), ...extra,
+  ...structuredClone(SEED_DEALS[DEAL]), ...TESTED_CITY, ...extra,
   answers: Object.fromEntries(Object.entries(answers).map(([k, v]) => [k, { v, src: 'test' }])),
 });
 
@@ -379,6 +381,7 @@ test('a form that is not part of this deal is FORM_NOT_REQUIRED and the error na
 
 test('the deal comes from the session: a deal id in the arguments changes nothing in another deal', async () => {
   const w = world();
+  await w.ready; // the first save seeds the store; a second save started before it ends can overwrite it
   await w.repository.save(variant({ transaction_id: OTHER }));
   await w.approved('seller', SELLER_FORMS);
   const e = await w.handOff('seller', SELLER_FORMS, { deal_id: OTHER, dealId: OTHER, transaction_id: OTHER, from: 'seller' });

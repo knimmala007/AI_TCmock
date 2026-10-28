@@ -21,6 +21,8 @@ test.beforeEach(() => {
 });
 test.afterEach(() => { globalThis.fetch = realFetch; });
 
+// Ticket 038: the seeded Austin deal is an untested jurisdiction, so these tests keep its data and set a tested city.
+const TESTED_CITY = { city: 'San Jose', county: 'Santa Clara' };
 const env = {};
 const DEAL = 'tx_unknown_city';
 const usage = { input_tokens: 1, output_tokens: 1 };
@@ -43,7 +45,7 @@ function session({ role = 'broker', sessionId = 's-1', answers = {}, ctx } = {})
     const repository = { get: id => { counts.gets++; return real.get(id); }, save: d => { counts.saves++; return real.save(d); } };
     return { storage, real, kv, counts, repository, seenFields: createSeenFieldStore(kv), ready: null };
   })();
-  const deal = { ...structuredClone(SEED_DEALS[DEAL]), answers: Object.fromEntries(Object.entries(answers).map(([k, v]) => [k, { v, src: 'test' }])) };
+  const deal = { ...structuredClone(SEED_DEALS[DEAL]), ...TESTED_CITY, answers: Object.fromEntries(Object.entries(answers).map(([k, v]) => [k, { v, src: 'test' }])) };
   c.ready ??= c.real.save(deal);
   const scope = { dealId: DEAL, sessionId, role };
   // One chat message in which the model makes `calls` ([name, input]) in order; returns the parsed results.
@@ -139,7 +141,7 @@ test('the seen set is per session and per role: another session\'s names do not 
 test('hoaName is never shown to anyone: not by get_deal, not by ask_next_question', async () => {
   for (const role of ['broker', 'seller']) {
     const repository = createRepository(memoryStorage());
-    const deal = { ...structuredClone(SEED_DEALS[DEAL]), answers: { propertyType: { v: 'Condominium', src: 'test' } } };
+    const deal = { ...structuredClone(SEED_DEALS[DEAL]), ...TESTED_CITY, answers: { propertyType: { v: 'Condominium', src: 'test' } } };
     await repository.save(deal);
     const tools = createTools({ repository, seenFields: createSeenFieldStore(memoryKv()) });
     const turn = { dealId: DEAL, role, sessionId: 's-1' };

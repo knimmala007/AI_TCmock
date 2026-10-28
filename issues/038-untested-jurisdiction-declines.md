@@ -1,5 +1,5 @@
 # 038: Untested jurisdictions decline with no rules
-Status: todo | Depends on: 034 | Owner: agent | Size: M
+Status: review pending | Depends on: 034 | Owner: agent | Size: M
 
 ## What solving this does
 
