@@ -46,15 +46,15 @@
 | 032 | [Tool-call limits and repeat stop](032-tool-call-limits-and-repeat-stop.md) | closed by 027c; logging moves to 062 | 027c | agent |
 | 033 | [`ask_next_question` picks the question in code](033-ask-next-question-by-unblock-count.md) | done | 024, 031 | agent |
 | 034 | [`save_answers` saves a fact](034-save-answers-saves-a-fact.md) | done | 033 | agent |
-| 035 | [Forms with no template are flagged, not filled](035-untemplated-forms-flagged-not-filled.md) | review pending | 034 | agent |
-| 036 | [`save_answers` field-name guard and batch cap](036-save-answers-field-guard-and-batch-cap.md) | todo | 034 | agent |
+| 035 | [Forms with no template are flagged, not filled](035-untemplated-forms-flagged-not-filled.md) | done | 034 | agent |
+| 036 | [`save_answers` field-name guard and batch cap](036-save-answers-field-guard-and-batch-cap.md) | done | 034 | agent |
 | 037 | [`save_answers` write refusals](037-save-answers-write-refusals.md) | todo | 034, 023 | agent |
-| 038 | [Untested jurisdictions decline with no rules](038-untested-jurisdiction-declines.md) | todo | 034 | agent |
-| 039 | [Invalid values, conflicts and attestation](039-invalid-values-conflicts-attestation.md) | todo | 034, 025 | agent |
+| 038 | [Untested jurisdictions decline with no rules](038-untested-jurisdiction-declines.md) | done | 034 | agent |
+| 039 | [Invalid values, conflicts and attestation](039-invalid-values-conflicts-attestation.md) (note: duplicate names in a batch are already rejected, 036) | todo | 034, 025 | agent |
 | 040 | [`flag_missing` lists what is missing](040-flag-missing.md) | todo | 024, 031 | agent |
 | 041 | [Workflow status panel shows the stages](041-workflow-status-panel-stages.md) | todo | 025, 029, 031 | agent |
 | 042 | [Evaluation against the Cottage Grove deal](042-evaluation-against-cottage-grove.md) | todo | 038, 040 | agent |
-| 043 | [Request approval and the broker's Approve click](043-request-approval-and-approve-click.md) | review pending | 023, 029, 031 | agent |
+| 043 | [Request approval and the broker's Approve click](043-request-approval-and-approve-click.md) | done | 023, 029, 031 | agent |
 | 043b | [Approve button in `index_v2.html`](043b-approve-button-in-index-v2.md) | todo | 043, 063 | agent |
 | 044 | [Deploy and smoke-test demo mode](044-deploy-and-smoke-test-demo-mode.md) | todo | 028, 030, 042, 043, 064 | human |
 | 045 | [Tune the limits with the owner](045-tune-limits-with-owner.md) | todo | 044 | human |
@@ -76,8 +76,8 @@
 | 060 | [Real loan-checklist code for the Lender](060-real-lender-checklist-code.md) | blocked | 055 | agent |
 | 061 | [Remove `aiagent` and add `lender` in the Kialae `scope.js`](061-remove-aiagent-from-kialae-scope.md) | blocked | 014 | human |
 | 062 | [Log refused turns (rate limit, daily cap, call limit, tool-call limit, repeat stop) and tool calls in events.js](062-log-refused-turns.md) | done | 027c | agent |
-| 063 | [Port the chat panel and role switcher to `index_v2.html`](063-port-chat-and-role-switcher-to-index-v2.md) | todo | 029 | agent |
-| 064 | [Only the broker can read logged free text (tests and the inbox property)](064-keep-free-text-out-of-event-payloads.md) | todo | 062 | agent |
+| 063 | [Port the chat panel and role switcher to `index_v2.html`](063-port-chat-and-role-switcher-to-index-v2.md) | done | 029 | agent |
+| 064 | [Only the broker can read logged free text (tests and the inbox property)](064-keep-free-text-out-of-event-payloads.md) | done | 062 | agent |
 
 ## Why this order
 

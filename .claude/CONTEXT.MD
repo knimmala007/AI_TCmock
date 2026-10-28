@@ -157,7 +157,7 @@ root, beside `index.html`. The chat entry point will be a new `api/agent.js`; no
 over its REST API with `fetch`, so no dependency was added.
 
 **Running it locally:** `npm start` runs a tiny static server on Node's built-in
-`http` module (no dependencies). It serves only an allowlist (the app, the shared
+`http` module (no dependencies). It serves only an allowlist (the app, `/index_v2.html`, the shared
 rules module and PDFs under `docs/`), never the rest of the repo, and mounts
 `api/<name>.js` at `/api/<name>`. `python3 -m http.server` also serves the page but
 not the API. File-backed storage is for local development only; on Vercel,
@@ -172,7 +172,7 @@ approach of `/api/doc` in the other branch is not copied: it depends on
 |-------|-------|
 | Model calls per turn | 8 |
 | Tool calls per turn | 20 |
-| Facts per `save_answers` batch | up to 15 |
+| Facts per `save_answers` batch | up to 15 (`MAX_FACTS_PER_SAVE`) |
 | Repeated identical call | 2, then stop |
 
 All four live in `backend/config.js`. Hitting any of them ends the turn with a
@@ -187,9 +187,10 @@ plain message to the user.
 it saves and validates in one call, which cuts latency. The jurisdiction check
 and the field-name guard therefore run inside `save_answers`. (There is one
 tool, `save_answers`, for every role that saves. The earlier singular
-`save_answer` was a naming error and is gone.) `save_answers` is built (034) for one
-fact per call; the batch cap, field-name guard, write refusals, jurisdiction check and
-attestation (tickets 035 to 039) are not built yet.
+`save_answer` was a naming error and is gone.) `save_answers` is built (034, 036) as a batch
+of up to `MAX_FACTS_PER_SAVE` facts per call, with the field-name guard, batch cap,
+untemplated-form flag (035) and jurisdiction decline (038). The write refusals and
+attestation (tickets 037 and 039) are not built yet.
 
 **Other roles:**
 
@@ -229,7 +230,11 @@ A model once invented a field name (`school_district_disclosure`) that
 didn't exist and queried it as if it were real. Fix: the orchestrator tracks
 the set of field names actually seen in prior tool results this
 turn/session; any lookup tool taking a `field_name` rejects a value outside
-that set, with an error listing the valid names. Enforced in code.
+that set, with an error listing the valid names. For `save_answers` the valid names are
+the session's seen set as it stood before the call, so a fact in a batch cannot make
+another fact seen, and a volunteered fact cannot be saved until the app has asked about
+it. A refused fact in a batch is named by its position, never by the name tried.
+Duplicate names in one batch are rejected. Enforced in code.
 
 ### Status codes (locked: ten)
 

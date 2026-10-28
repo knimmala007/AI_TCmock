@@ -10,6 +10,7 @@ Files: modify `index_v2.html` | reference `api/inbox.js`, `backend/inbox.js`, `i
 ## Scope
 
 In: A broker-only Inbox view that calls `GET /api/inbox` and lists each item (asking role, question, time, ticket id). The view is not shown to seller, buyer or lender.
+In: A broker-only Audit log button that opens `/api/events` (the endpoint already exists and re-checks the session role; the button is a convenience, not the control). It is not rendered for seller, buyer or lender.
 Out: Replies (049); an answered state or removing items (the store has none, see R25); any change to `api/`, `backend/` or `index.html`; a new endpoint.
 
 ## Acceptance criteria
