@@ -1,5 +1,5 @@
 # 029b: Chat history read
-Status: todo | Depends on: 029 | Owner: agent | Size: S
+Status: review pending | Depends on: 029 | Owner: agent | Size: S
 
 ## What solving this does
 
