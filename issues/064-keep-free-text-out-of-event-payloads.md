@@ -1,5 +1,5 @@
 # 064: Only the broker can read logged free text (tests and the inbox property)
-Status: todo | Depends on: 062 | Owner: agent | Size: S
+Status: review pending | Depends on: 062 | Owner: agent | Size: S
 
 ## What solving this does
 
