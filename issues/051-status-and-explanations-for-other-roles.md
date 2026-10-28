@@ -28,4 +28,4 @@ handler: each role.
 
 ## Notes
 
-Explanation source is a decision.
+Decided in ticket 024 (ADR 0013). `get_deal_status` stays an alias of `get_deal`. `explain_form({code})` returns repo text only (`DOCS` metadata plus the question text and why), no model-written law. A code the role may not see is `ROLE_FORBIDDEN`; a visible code the deal does not require is `FORM_NOT_REQUIRED`; a visible code with no template returns `ok: true` and a fixed flag-only note.

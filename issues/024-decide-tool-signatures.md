@@ -1,5 +1,5 @@
 # 024: Decide the tool signatures
-Status: todo | Depends on: 018 | Owner: human | Size: M
+Status: done | Depends on: 018 | Owner: human | Size: M
 
 ## What solving this does
 

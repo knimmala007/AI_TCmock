@@ -28,4 +28,4 @@ handler.
 
 ## Notes
 
-What "the loan step" is stored as is part of ticket 024.
+Decided in ticket 024 (ADR 0013): records `deal.loan.clear_to_close = {by: "lender", at}`; no stage change and no stage gate; `FORM_NOT_REQUIRED` only when `APPR` is not required; a repeat is idempotent (`ok: true`, `already: true`, original time, no write). The lender session's own statement counts as the attestation (ADR 0010), with the demo-mode caveat (ticket 057).

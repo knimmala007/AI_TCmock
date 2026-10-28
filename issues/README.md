@@ -1,6 +1,6 @@
 # Issues: role-based chat agent
 
-74 tickets: 35 done, 33 to do, 5 blocked, 1 closed (032). Source of requirements: `.scratch/role-based-chat-agent/spec.md`, `.claude/CONTEXT.MD`, ADRs 0001 to 0006, `backend/reminders.md`. Words follow `GLOSSARY.md`.
+75 tickets: 36 done, 33 to do, 5 blocked, 1 closed (032). Source of requirements: `.scratch/role-based-chat-agent/spec.md`, `.claude/CONTEXT.MD`, ADRs 0001 to 0006, `backend/reminders.md`. Words follow `GLOSSARY.md`.
 
 | # | Title | Status | Depends on | Owner |
 |---|-------|--------|------------|-------|
@@ -27,7 +27,7 @@
 | 021 | [Deploy the health check to a Vercel preview](021-deploy-health-check-to-vercel-preview.md) | todo | 019, 020 | human |
 | 022 | [Extractor lists city-dependent codes; refresh the form-code notes](022-extractor-city-codes-and-context-refresh.md) | done | 002, 003 | agent |
 | 023 | [Design the approval and lock state shapes](023-design-approval-and-lock-state-shapes.md) | done | 018 | human |
-| 024 | [Decide the tool signatures](024-decide-tool-signatures.md) | todo | 018 | human |
+| 024 | [Decide the tool signatures](024-decide-tool-signatures.md) | done | 018 | human |
 | 025 | [Decide stages and attestation fields](025-decide-stages-and-attestation-fields.md) | done | 018 | human |
 | 026 | [Find the platform audit log's shape](026-find-audit-log-shape.md) | todo | 018 | human |
 | 027 | [Chat endpoint gives a plain reply (umbrella for 027a to 027d)](027a-chat-endpoint-plain-reply.md) | done (027a to 027d) | 008, 009, 011, 012 | agent |
@@ -56,6 +56,7 @@
 | 042 | [Evaluation against the Cottage Grove deal](042-evaluation-against-cottage-grove.md) | todo | 038, 040 | agent |
 | 043 | [Request approval and the broker's Approve click](043-request-approval-and-approve-click.md) | done | 023, 029, 031 | agent |
 | 043b | [Approve button in `index_v2.html`](043b-approve-button-in-index-v2.md) | todo | 043, 063 | agent |
+| 043c | [Refuse untemplated forms in `request_approval` and `hand_off` with `NO_TEMPLATE`](043c-refuse-untemplated-forms-in-approval-tools.md) | todo | 043 | agent |
 | 044 | [Deploy and smoke-test demo mode](044-deploy-and-smoke-test-demo-mode.md) | todo | 028, 030, 042, 043, 064 | human |
 | 045 | [Tune the limits with the owner](045-tune-limits-with-owner.md) | todo | 044 | human |
 | 046 | [Freeze snapshot and Reopen buttons](046-freeze-snapshot-and-reopen-buttons.md) | todo | 023, 037, 043 | agent |
@@ -66,7 +67,7 @@
 | 050b | [Broker inbox view in `index_v2.html`](050b-broker-inbox-view-in-index-v2.md) | todo | 050, 063 | agent |
 | 051 | [Status and form explanations for seller, buyer and lender](051-status-and-explanations-for-other-roles.md) | todo | 050 | agent |
 | 052 | [Seller answers intake questions](052-seller-answers-intake.md) | todo | 034, 051 | agent |
-| 053 | [Buyer acknowledges a disclosure](053-buyer-acknowledges-disclosure.md) | todo | 051 | agent |
+| 053 | [Buyer acknowledges a disclosure](053-buyer-acknowledges-disclosure.md) | todo | 051, 047 | agent |
 | 054 | [Lender view in the app](054-lender-view-in-the-app.md) | todo | 029 | agent |
 | 055 | [Lender marks clear to close](055-lender-marks-clear-to-close.md) | todo | 051, 054 | agent |
 | 056 | [Berkeley and Oakland cases](056-berkeley-and-oakland-cases.md) | todo | 005 | agent |
@@ -110,7 +111,7 @@ The order follows what unblocks what, and keeps every ticket's dependencies at l
 
 Each is a ticket:
 
-- Tool inputs, outputs and meanings, including whether the next question is the first pending one (as the app does) or the one that unblocks most forms (as the spec says): **024**.
+- Tool inputs, outputs and meanings: decided in **024** (ADR 0013). Open from it: which forms are delivered to the buyer, and full content or receipt: **047**.
 - How approvals, locks and the snapshot are stored: **023**.
 - Stages each role sees, and which fields need a person to attest: **025**.
 - The platform audit log's shape: **026**, then **059**.
