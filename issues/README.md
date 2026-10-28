@@ -54,7 +54,7 @@
 | 040 | [`flag_missing` lists what is missing](040-flag-missing.md) | todo | 024, 031 | agent |
 | 041 | [Workflow status panel shows the stages](041-workflow-status-panel-stages.md) | todo | 025, 029, 031 | agent |
 | 042 | [Evaluation against the Cottage Grove deal](042-evaluation-against-cottage-grove.md) | todo | 038, 040 | agent |
-| 043 | [Request approval and the broker's Approve click](043-request-approval-and-approve-click.md) | todo | 023, 029, 031 | agent |
+| 043 | [Request approval and the broker's Approve click](043-request-approval-and-approve-click.md) | review pending | 023, 029, 031 | agent |
 | 043b | [Approve button in `index_v2.html`](043b-approve-button-in-index-v2.md) | todo | 043, 063 | agent |
 | 044 | [Deploy and smoke-test demo mode](044-deploy-and-smoke-test-demo-mode.md) | todo | 028, 030, 042, 043, 064 | human |
 | 045 | [Tune the limits with the owner](045-tune-limits-with-owner.md) | todo | 044 | human |

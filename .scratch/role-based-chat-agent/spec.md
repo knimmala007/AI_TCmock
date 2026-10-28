@@ -142,6 +142,7 @@ It is built from scratch with a hand-written loop (no agent framework, not a mes
 - Approval-gated actions: handing the package to another role (hand off); releasing forms to a buyer or lender; freezing the final snapshot; sending a message to a seller, buyer or lender; waiving a required form or overriding a refusal; any change after approval (reopening a locked form).
 - Only hand off is a tool, and it refuses until the broker has approved. The other five have no tool, so the assistant cannot perform them. They are broker buttons in the UI (release forms, freeze snapshot, send message, waive a form or override a refusal, reopen a form). Each button calls a server endpoint that re-checks the signed session is the broker, records the approval for that action and writes the audit log. Request approval only asks; the click grants.
 - Approval is granted per action and only by the broker's Approve click, never by a tool the model can call.
+- Tool arguments (ticket 043): `request_approval({to, forms})` and `hand_off({to, forms})`, with `to` one of seller, buyer or lender and `forms` a non-empty list of unique form codes. `request_approval` stores the pending request at `deal.approval_requests.hand_off = {request_id, requested_by, requested_at, to, forms}` (a random `request_id`, no free text). The Approve click is `POST /api/approve {action, request_id}`; the id is compared with the stored request and is never authority. The grant is bound to what was approved and one hand-off uses it up: `{granted_by, granted_at, to, forms, consumed?}`. `hand_off` is refused with approval required unless its `to` and `forms` equal the grant's.
 
 **Logging**
 - One event log with one logging helper, called before and after each model call, around each tool execution, and when a turn is refused. Payloads are redacted for API keys before they are written.
@@ -213,7 +214,7 @@ Prior art: the existing tests for the role registry, fixtures, repository, event
 
 Open items, tracked in the reminders file:
 - Full signatures for every tool: the envelope and five tools are decided (ADR 0008); the rest are still open (ticket 024).
-- Decided (ADR 0007, reminders Q-c): approval and lock state carry who and when at the same paths: `approval.snapshot = {forms, approved_by, approved_at}`, `locks[FORM] = {reason, set_by, set_at}`, `approvals[action] = {granted_by, granted_at, consumed?}`. `reopen_form` needs no prior grant: the broker's Reopen click is the approval.
+- Decided (ADR 0007, reminders Q-c): approval and lock state carry who and when at the same paths: `approval.snapshot = {forms, approved_by, approved_at}`, `locks[FORM] = {reason, set_by, set_at}`, `approvals[action] = {granted_by, granted_at, consumed?}` (for `hand_off` the grant also carries `to` and `forms`, ticket 043). `reopen_form` needs no prior grant: the broker's Reopen click is the approval.
 - The shape of the existing audit log and how this repo reaches it.
 - How the session carries the role once real sign-in exists.
 - The loan checklist's document code for the Lender (today only the appraisal exists, so the Lender sees only that).

@@ -8,7 +8,8 @@ import path from 'node:path';
 import { EVENTS_PATH } from './config.js';
 
 // turn_refused: a turn or call a brake or guard stopped. Its payload is a reason code only (ticket 062).
-export const EVENT_TYPES = new Set(['model_call_start', 'model_call_end', 'tool_start', 'tool_end', 'turn_refused']);
+// approval_granted: the broker's Approve click was accepted (ticket 043). Its payload is fixed values only: the action, who, when.
+export const EVENT_TYPES = new Set(['model_call_start', 'model_call_end', 'tool_start', 'tool_end', 'turn_refused', 'approval_granted']);
 
 const KEY_PATTERN = /sk-ant-[A-Za-z0-9_-]+/g;
 const SECRET_NAMES = new Set(['x-api-key', 'api_key', 'authorization', 'anthropic_api_key']);

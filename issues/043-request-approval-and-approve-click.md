@@ -1,5 +1,5 @@
 # 043: Request approval and the broker's Approve click
-Status: todo | Depends on: 023, 029, 031 | Owner: agent | Size: M
+Status: review pending | Depends on: 023, 029, 031 | Owner: agent | Size: M
 
 ## What solving this does
 

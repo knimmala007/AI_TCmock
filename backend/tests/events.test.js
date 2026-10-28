@@ -56,6 +56,13 @@ test('kv event store keeps events per turn, in order, with no expiry', async () 
   assert.deepStrictEqual((await log.eventsForTurn('t1')).map(e => e.payload), [{ a: 1 }, { a: 2 }]);
 });
 
+test('approval_granted is a known event type', async () => {
+  assert.ok(EVENT_TYPES.has('approval_granted'));
+  const store = memoryEventStore();
+  await createEventLog(store).logEvent('s1', 't1', 'broker', 'TX', 'approval_granted', { action: 'hand_off' });
+  assert.strictEqual(store.rows[0].event_type, 'approval_granted');
+});
+
 test('turn_refused is a known event type, and logEvent still rejects others', async () => {
   assert.ok(EVENT_TYPES.has('turn_refused'));
   const store = memoryEventStore();

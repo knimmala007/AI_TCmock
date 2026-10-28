@@ -29,7 +29,12 @@ Run npm test before starting (baseline) and before finishing.
 Touch only the files in the ticket's Files line.
 Never commit, push, or edit .env*, .claude/settings.json, vercel.json, or Vercel/, or without asking.
 Clerk/Upstash settings. Never call the real model API in tests.
-When finished, report the test result.
+
+When finished: set only your own ticket to "review pending", list what issues/README.md,
+backend/reminders.md, the spec, CONTEXT and the ADRs need in your report, and report the test
+result. The owner marks the ticket done after the checkpoint (see Ticket rules below, which win
+if this section and they ever differ).
+
 If docs and code disagree, stop and report; do not choose silently.
 ## Checkpoint before every commit
 When the user asks for the checkpoint agent on a ticket, run it, show its full report to the user, and wait. Do not stage, commit, merge, delete a worktree or start another ticket. The user commits and merges.
@@ -42,3 +47,6 @@ When the user asks for the checkpoint agent on a ticket, run it, show its full r
 5. Invariants: role and deal come only from the frozen session turn; every model call goes through modelGate; role-filter before redactDeal; tool errors are fixed text with no data; limits from config.js; no key or process.env outside config; only the ten status codes; no "AI agent" role.
 6. Tests go through the handler seam with the scripted fake model; no real network or model call; never assert on prompt wording. Run a mutation check for anything that returns data or enforces a rule.
 7. Never read .env files or print environment values. Never stage, commit, merge, push or delete a worktree. When the work is done, say so and wait for me to run the checkpoint agent.
+8. Exceptions: an edit outside the Files line, or to the README, reminders, spec, CONTEXT or an ADR, is
+   allowed only when the owner asks for it in that session. List every such edit in the report under
+   "outside the Files line" so the checkpoint can match it to the owner's request.
