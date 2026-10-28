@@ -113,6 +113,13 @@ const DEFINITIONS = {
       'form statuses, limited to what your role may see. Takes no arguments.',
     input_schema: NO_INPUT,
   },
+  flag_missing: {
+    name: 'flag_missing',
+    description: 'Lists, per form, the facts still missing on this deal (with any never-received note), the required forms ' +
+      'that have no template, and the seller certifications still awaiting the seller. Read-only; it never fills anything. ' +
+      'Takes no arguments.',
+    input_schema: NO_INPUT,
+  },
   get_deal_status: {
     name: 'get_deal_status',
     description: 'Reads the deal for this conversation: address, stage, jurisdiction, field values, missing fields and ' +
@@ -161,6 +168,36 @@ function viewOf(role, deal) {
 
 function engineFor(deal) {
   return createEngine({ getAnswers: () => deal.answers || {}, getDeal: () => deal, getDocs: () => DOCS });
+}
+
+// flag_missing is the broker's report (ADR 0013). The text is fixed and carries no deal data and no echo of the input.
+const NOT_BROKER = fail(STATUS.ROLE_FORBIDDEN, 'Only the broker can do this.', 'Ask the broker.');
+
+// What is missing on the deal, per form, for a role: a DOCS field with no value in deal.data, the same rule viewOf uses
+// for missing_fields. Templated forms list their gaps; a required form with no template is listed by code only. A
+// plain function over (role, deal), with no repository, so the workflow panel (ticket 041) can call it too.
+// It reads the deal and writes nothing. Returns plain data: the caller redacts it.
+function missingReport(role, deal) {
+  const engine = engineFor(deal);
+  const data = deal.data || {};
+  const received = new Map((deal.never_received || []).map(n => [n.field, { upload: n.upload, note: n.note }]));
+  const visible = engine.activeDocs().filter(d => canAccessForm(role, d.code) && hasTemplate(d.code));
+
+  const forms = visible
+    .map(d => ({
+      code: d.code,
+      name: d.name,
+      missing: (d.fields || []).filter(n => !data[n]).map(n => ({
+        field_name: n,
+        ...(received.has(n) ? { never_received: received.get(n) } : {}),
+      })),
+    }))
+    .filter(f => f.missing.length);
+  const names = [...new Set(forms.flatMap(f => f.missing.map(m => m.field_name)))];
+  const flagged = engine.requiredForms().filter(code => canAccessForm(role, code) && !hasTemplate(code));
+  // Unanswered seller certifications (ADR 0010), limited to those on a form in this deal's package.
+  const awaiting = ATTESTATION_FIELDS.filter(n => names.includes(n));
+  return { names, report: { forms, flagged_forms: flagged, awaiting_seller: awaiting } };
 }
 
 // Whether the role may save this fact. A fact feeds several forms (q.fills), so the checks run over those forms,
@@ -219,6 +256,21 @@ export function createTools({ repository, seenFields, inbox }) {
     // Only the broker's view has an inbox key, and it never carries the question text (ADR 0008, ticket 050).
     const data = turn.role === 'broker' && inbox ? { ...view, inbox: await inboxSummary(inbox, turn.dealId) } : view;
     return { ok: true, data: redactDeal(data), field_names: fieldNames };
+  }
+
+  // Nothing the model passes is read. Read-only: nothing is saved. The role is checked here as well as by the registry.
+  async function flagMissing({ turn }) {
+    const deal = await repository.get(turn.dealId);
+    if (!deal) return NO_DEAL;
+    if (isUntested(deal)) return UNTESTED_JURISDICTION;
+    if (turn.role !== 'broker') return NOT_BROKER;
+    const { names, report } = missingReport(turn.role, deal);
+    // Only real questions become seen names: a missing field that is not a question key (tenancyStatus) is reported,
+    // never offered to save_answers, and the seller certifications stay with the seller (ADR 0010).
+    const askable = new Set(engineFor(deal).QUESTIONS.map(q => q.k));
+    const offered = names.filter(n => askable.has(n) && !ATTESTATION_FIELDS.includes(n));
+    await seenFields.add({ dealId: turn.dealId, sessionId: turn.sessionId, role: turn.role }, offered);
+    return { ok: true, data: redactDeal(report), field_names: names };
   }
 
   // The question is chosen by the rules (unblock count, then question order). Nothing the model passes is read.
@@ -329,6 +381,7 @@ export function createTools({ repository, seenFields, inbox }) {
     ask_next_question: { definition: DEFINITIONS.ask_next_question, key: () => ({}), run: askNextQuestion },
     // No `key`: the whole input counts, so sending the identical save again is the repeat the loop stops.
     save_answers: { definition: DEFINITIONS.save_answers, run: saveAnswers },
+    flag_missing: { definition: DEFINITIONS.flag_missing, key: () => ({}), run: flagMissing },
     ...(inbox ? { ask_broker: askBrokerTool({ inbox }) } : {}),
     ...guardedApprovalTools(),
   };
