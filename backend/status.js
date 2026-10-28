@@ -20,6 +20,9 @@ export const APPROVAL_GATED_ACTIONS = new Set([
 
 const refuse = (error, message, next_step) => ({ error, message, next_step });
 
+// The tool envelope for a refusal (ADR 0008): {ok: false, error: {code, message, next_step}}.
+export const fail = (code, message, next_step) => ({ ok: false, error: { code, message, next_step } });
+
 // Checked in this order, so a role cannot learn anything about a form it may not touch:
 // role, then required, then approved snapshot, then lock. Returns null when the write may go ahead.
 export function guardWrite({ role, deal, engine, formCode }) {
@@ -46,10 +49,12 @@ export function guardWrite({ role, deal, engine, formCode }) {
 }
 
 // Per-action grants live in deal.approvals and are set only by the broker's Approve click,
-// never by a tool the model can call (reminders.md Q-d).
+// never by a tool the model can call (reminders.md Q-d). A grant is {granted_by, granted_at, consumed?}
+// (ADR 0007): one that is used up (consumed) no longer allows the action.
 export function guardAction({ action, deal }) {
   if (!APPROVAL_GATED_ACTIONS.has(action)) return null;
-  if (deal.approvals && deal.approvals[action] === true) return null;
+  const grant = deal.approvals && deal.approvals[action];
+  if (Boolean(grant && grant.granted_at && !grant.consumed)) return null;
   return refuse(STATUS.APPROVAL_REQUIRED, `${action} needs the broker to press Approve first.`,
     'Ask the broker to approve, then retry.');
 }

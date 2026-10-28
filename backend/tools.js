@@ -10,9 +10,8 @@ import { DOCS } from './fixtures.js';
 import { canAccessForm, stageFor, toolsFor } from './roles.js';
 import { redactDeal } from './safety.js';
 import { askBrokerTool, inboxSummary } from './inbox.js';
-import { STATUS, guardWrite } from './status.js';
-
-const fail = (code, message, next_step) => ({ ok: false, error: { code, message, next_step } });
+import { approvalTools, latestHandoffNote } from './approvals.js';
+import { STATUS, fail, guardWrite } from './status.js';
 
 // ADR 0008 defines no "not found" code (ten status codes plus UNKNOWN_TOOL, BAD_ARGS, UNKNOWN_FIELD, TURN_LIMIT).
 // NOT_FOUND is a PROVISIONAL code until the owner decides; the text is fixed and carries no data.
@@ -86,6 +85,9 @@ function viewOf(role, deal) {
   // The lender's forms come from the engine's required forms, so APPR shows only when the buyer is financing.
   const docs = engine.activeDocs().filter(d => canAccessForm(role, d.code) && (role !== 'lender' || required.includes(d.code)));
   const stage = stageFor(role, deal, { financed: required.includes('APPR') });
+  // The next role sees who handed off and when, never the earlier chat (ADR 0011). Which forms it sees is still
+  // decided by its role; filtering by release is ticket 047.
+  const handoff = role === 'broker' ? null : latestHandoffNote(deal, role);
 
   const data = deal.data || {};
   const names = [...new Set(docs.flatMap(d => d.fields || []))];
@@ -98,6 +100,7 @@ function viewOf(role, deal) {
       address: deal.address,
       jurisdiction: { city: deal.city, county: deal.county },
       ...(stage ? { stage } : {}),
+      ...(handoff ? { handoff } : {}),
       fields,
       missing_fields: missing,
       forms: docs.map(d => ({
@@ -224,6 +227,7 @@ export function createTools({ repository, seenFields, inbox }) {
     // No `key`: the whole input counts, so sending the identical save again is the repeat the loop stops.
     save_answers: { definition: DEFINITIONS.save_answers, run: saveAnswers },
     ...(inbox ? { ask_broker: askBrokerTool({ inbox }) } : {}),
+    ...approvalTools({ repository, noDeal: NO_DEAL }),
   };
 
   return {

@@ -77,9 +77,22 @@ test('APPROVAL_REQUIRED: a gated action before the broker pressed Approve', () =
   }
 });
 
+const grant = (extra = {}) => ({ granted_by: 'broker', granted_at: '2026-10-28T10:00:00.000Z', ...extra });
+
 test('a gated action is allowed once the broker approved that action', () => {
-  assert.strictEqual(guardAction({ action: 'hand_off', deal: deal({ approvals: { hand_off: true } }) }), null);
-  assert.strictEqual(guardAction({ action: 'send_message', deal: deal({ approvals: { hand_off: true } }) }).error, 'APPROVAL_REQUIRED');
+  assert.strictEqual(guardAction({ action: 'hand_off', deal: deal({ approvals: { hand_off: grant() } }) }), null);
+  assert.strictEqual(guardAction({ action: 'send_message', deal: deal({ approvals: { hand_off: grant() } }) }).error, 'APPROVAL_REQUIRED');
+});
+
+test('a consumed grant no longer allows the action (one approval, one use)', () => {
+  const r = guardAction({ action: 'hand_off', deal: deal({ approvals: { hand_off: grant({ consumed: true }) } }) });
+  assert.strictEqual(r.error, 'APPROVAL_REQUIRED');
+});
+
+test('only a grant record counts: true, an empty object or a record with no time does not', () => {
+  for (const bad of [true, {}, { granted_by: 'broker' }]) {
+    assert.strictEqual(guardAction({ action: 'hand_off', deal: deal({ approvals: { hand_off: bad } }) }).error, 'APPROVAL_REQUIRED');
+  }
 });
 
 test('an action that is not gated is never refused', () => {

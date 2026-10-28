@@ -10,5 +10,5 @@ One `agent_events` log (`backend/events.js`) and one `logEvent` helper. Storage 
 
 ## Consequences
 - One place to read when debugging a turn.
-- Event types are a closed set; an unknown type is rejected.
+- Event types are a closed set; an unknown type is rejected. The set is `model_call_start`, `model_call_end`, `tool_start`, `tool_end`, `turn_refused` (ticket 062) and `approval_granted` (ticket 043, written by the Approve endpoint with `{action, granted_by, granted_at, to, forms}` and its own turn id).
 - The events page is built. The real audit-log sink is tracked as R7 in `backend/reminders.md`.

@@ -253,8 +253,9 @@ marked `guardWrite` / `guardAction`.
 **Check order for a write (confirmed):** role, then required, then approved
 snapshot, then lock. A role therefore learns nothing about a form it may not touch.
 Per-action grants live in `deal.approvals`, set only by the broker's Approve click,
-never by a model-callable tool. They carry who and when (ADR 0007): `{granted_by,
-granted_at, consumed?}`.
+never by a model-callable tool. They carry who and when (ADR 0007), and for `hand_off`
+also what was approved: `{granted_by, granted_at, to, forms, consumed?}`. A grant is
+used up by one successful hand-off (`consumed`).
 
 ### Attestation and hand-off (decided)
 
@@ -282,7 +283,13 @@ They are **broker UI buttons** (release forms, freeze snapshot, send message, wa
 form or override a refusal, reopen a form). Each button calls a server endpoint that
 re-checks the signed session is the broker, records the per-action approval, and
 writes to the audit log. `request_approval` only asks for approval; the click is
-what grants it. Reopening an approved form is therefore a button, and
+what grants it. In detail (ticket 043): `request_approval({to, forms})` stores
+`deal.approval_requests.hand_off = {request_id, requested_by, requested_at, to, forms}`
+(no free text); the broker's click is `POST /api/approve {action, request_id}`, which
+compares the id with the stored request and writes the grant from it, then logs an
+`approval_granted` event; `hand_off({to, forms})` is refused with `APPROVAL_REQUIRED`
+unless its `to` and `forms` equal the grant's, and for a buyer or lender the forms must
+be released. `GET /api/approve` (broker only) lists pending requests. Reopening an approved form is therefore a button, and
 `POST_APPROVAL_CHANGE` tells the assistant to ask the broker to press it.
 
 ### Rules engine in JavaScript (decided)

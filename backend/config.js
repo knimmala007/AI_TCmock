@@ -33,6 +33,7 @@ export function isTestedJurisdiction(city, county) {
 // a starting point; the owner can tune them. See reminders.md R15.
 export const DEMO_SESSION_PER_MINUTE = 10; // role switches per client
 export const AUDIT_PAGE_PER_MINUTE = 30; // audit page loads per client
+export const APPROVE_PER_MINUTE = 30; // Approve endpoint requests per client (ticket 043)
 export const CHAT_PER_MINUTE = 20; // chat messages per client (for the chat endpoint, not built yet)
 export const DAILY_MODEL_CALL_CAP = 500; // model calls per day across everyone
 export const SESSION_MAX_AGE_SECONDS = 24 * 60 * 60; // one day
