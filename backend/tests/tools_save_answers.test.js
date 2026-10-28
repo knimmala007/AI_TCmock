@@ -46,13 +46,26 @@ const one = (field_name, value, extra = {}) => ({ answers: [{ field_name, value 
 
 // Runs one chat message in which the model makes `calls` (tool inputs) in order. Returns the parsed
 // results and the repository, so a test can look at what was stored.
-async function run(role, calls, { deal = variant(), dealId = OTHER, name = 'save_answers', stub } = {}) {
+async function run(role, calls, { deal = variant(), dealId = OTHER, name = 'save_answers', stub, seed } = {}) {
   const storage = memoryStorage();
   const real = createRepository(storage);
   const repository = stub ?? real;
   if (deal) await real.save(deal);
   const kv = memoryKv();
   const seenFields = createSeenFieldStore(kv);
+  // Ticket 036: save_answers only takes names the session was shown. A get_deal call before the chat message stands in
+  // for the model having read the deal. get_deal shows document fields, not question keys, and ask_next_question gives
+  // one key at a time, so the names these calls save are also added to the seen set (`seed` overrides that list).
+  // hoaName is never shown to anyone: ask_next_question skips it and get_deal does not list it (tools_field_guard.test.js
+  // pins that), so the NO_TEMPLATE tests can only reach it by seeding it here.
+  if (deal) {
+    const scope = { dealId, sessionId: 's-1', role };
+    await createTools({ repository: real, seenFields }).registry.get_deal.run({ turn: scope, args: {} });
+    const named = calls.flatMap(c => (c && Array.isArray(c.answers) ? c.answers : []))
+      .map(a => a && a.field_name).filter(n => typeof n === 'string' && n.trim()).map(n => n.trim());
+    const names = seed ?? named;
+    if (names.length) await seenFields.add(scope, names);
+  }
   const requests = [];
   const replies = [uses(...calls.map((input, i) => use(`c${i}`, name, input))), ok('done')];
   const handler = createAgentHandler({
@@ -193,7 +206,7 @@ test('bad arguments get one fixed line and save nothing', async () => {
   const bad = [
     {}, { answers: [] }, { answers: 'city' }, { answers: [{ field_name: 'city' }] },
     { answers: [{ field_name: 'city', value: '   ' }] }, { answers: [{ field_name: 7, value: 'x' }] },
-    { answers: [{ field_name: 'city', value: 'San José' }, { field_name: 'seller', value: 'A' }] },
+    { answers: [{ field_name: 'city', value: 'San José' }, { field_name: 'city', value: 'San José' }] }, // the same name twice
   ];
   const before = variant();
   const t = await run('broker', bad, { deal: before });
@@ -255,7 +268,10 @@ test('035: a fact that feeds only untemplated forms is not saved: ok false, fixe
     assert.strictEqual(saves, 0, `${role}: nothing written`);
     assert.ok(!JSON.stringify(t.e).includes(SENTINEL));
     assert.ok(!JSON.stringify(t.e).includes('HOA'), 'the text names no form code');
-    assert.deepStrictEqual(await t.seenFields.list({ dealId: OTHER, sessionId: 's-1', role }), []);
+    // Only what the helper seeded (get_deal's names and hoaName): the refused save added nothing to the seen set.
+    const probe = createSeenFieldStore(memoryKv());
+    const shown = await createTools({ repository: real, seenFields: probe }).registry.get_deal.run({ turn: { dealId: OTHER, sessionId: 's-1', role }, args: {} });
+    assert.deepStrictEqual((await t.seenFields.list({ dealId: OTHER, sessionId: 's-1', role })).sort(), [...shown.field_names, 'hoaName'].sort());
   }
 });
 

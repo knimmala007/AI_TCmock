@@ -5,6 +5,7 @@
 // are never read for either. Everything the model sees is filtered by role (roles.js) and then
 // passed through redactDeal (safety.js). Error text is fixed and carries no deal data (reminders R23).
 import { createEngine } from '../rules.js';
+import { MAX_FACTS_PER_SAVE } from './config.js';
 import { ToolArgsError } from './agent_loop.js';
 import { DOCS } from './fixtures.js';
 import { canAccessForm, stageFor, toolsFor } from './roles.js';
@@ -51,27 +52,35 @@ const untemplatedOnly = (role, engine) => engine.QUESTIONS.filter(q => feedsOnly
 // No input: the deal and the role are not arguments, so nothing the model passes is read.
 const NO_INPUT = { type: 'object', properties: {}, additionalProperties: false };
 
-// One fact per call for now. Ticket 036 replaces this with the batch cap in config.js.
-const FACTS_PER_CALL = 1;
-
 // Where a chat answer came from (ADR 0010). It must not start with "Derived": the rules overwrite those.
 const SOURCE_BY_ROLE = Object.freeze({ seller: 'Seller chat answer', broker: 'Broker chat answer' });
 
-const BAD_SAVE_ARGS = 'save_answers takes {"answers": [{"field_name": text, "value": text}]} with exactly one answer.';
+const BAD_SAVE_ARGS = `save_answers takes {"answers": [{"field_name": text, "value": text}]} with 1 to ${MAX_FACTS_PER_SAVE} answers, each field name once.`;
 const UNKNOWN_SAVE_FIELD = 'That field name is not a question on this deal. Use ask_next_question to get the next one.';
 const EMPTY_SAVE_VALUE = 'That answer was empty, so nothing was saved.';
+
+// A name the model was never shown (ticket 036, the invented-field-name bug). The message lists only names this
+// session's seen set already holds; it never echoes the name that was tried, and never lists the full question list.
+const UNSEEN_NEXT_STEP = 'Use only a field name from ask_next_question or get_deal.';
+function unseenField(seen) {
+  const names = [...seen].sort();
+  const message = names.length
+    ? `That field name has not been given to you. Valid field names: ${names.join(', ')}.`
+    : 'That field name has not been given to you, and you have been given none yet. Call get_deal or ask_next_question first.';
+  return fail('UNKNOWN_FIELD', message, UNSEEN_NEXT_STEP);
+}
 
 const DEFINITIONS = {
   save_answers: {
     name: 'save_answers',
-    description: 'Saves one answer the user has just given to a question from ask_next_question. Pass the field name ' +
-      'exactly as that question gave it and the answer in the user\'s words. Returns the forms this added, removed ' +
-      'and filled, and what is still missing. Never guess an answer the user has not given.',
+    description: `Saves answers the user has just given to questions from ask_next_question: up to ${MAX_FACTS_PER_SAVE} ` +
+      'per call, each field name once. Pass each field name exactly as it was given to you and the answer in the user\'s ' +
+      'words. Returns the forms this added, removed and filled, and what is still missing. Never guess an answer the user has not given.',
     input_schema: {
       type: 'object',
       properties: {
         answers: {
-          type: 'array', minItems: FACTS_PER_CALL, maxItems: FACTS_PER_CALL,
+          type: 'array', minItems: 1, maxItems: MAX_FACTS_PER_SAVE,
           items: {
             type: 'object',
             properties: { field_name: { type: 'string' }, value: { type: 'string' } },
@@ -174,15 +183,20 @@ function checkWrite(role, deal, engine, q) {
 // The required forms this fact feeds that have no template, limited to the role's view. Never filled.
 const flaggedFormsOf = (role, engine, q) => formsFedBy(role, engine, q).flagged;
 
-// The one fact in the call, or a ToolArgsError. Only these two strings are read; anything else the model sends is ignored.
-function oneAnswer(args) {
+// The facts in the call, or a ToolArgsError before anything is read or written: 1 to MAX_FACTS_PER_SAVE answers, each a
+// non-empty field name and value, no field name twice. Only these two strings are read; anything else is ignored.
+function factsOf(args) {
   const list = args && args.answers;
-  if (!Array.isArray(list) || list.length !== FACTS_PER_CALL) throw new ToolArgsError(BAD_SAVE_ARGS);
-  const { field_name, value } = list[0] || {};
-  if (typeof field_name !== 'string' || typeof value !== 'string' || !field_name.trim() || !value.trim()) {
-    throw new ToolArgsError(BAD_SAVE_ARGS);
-  }
-  return { fieldName: field_name.trim(), value: value.trim() };
+  if (!Array.isArray(list) || list.length < 1 || list.length > MAX_FACTS_PER_SAVE) throw new ToolArgsError(BAD_SAVE_ARGS);
+  const facts = list.map(item => {
+    const { field_name, value } = item || {};
+    if (typeof field_name !== 'string' || typeof value !== 'string' || !field_name.trim() || !value.trim()) {
+      throw new ToolArgsError(BAD_SAVE_ARGS);
+    }
+    return { fieldName: field_name.trim(), value: value.trim() };
+  });
+  if (new Set(facts.map(f => f.fieldName)).size !== facts.length) throw new ToolArgsError(BAD_SAVE_ARGS);
+  return facts;
 }
 
 export function createTools({ repository, seenFields, inbox }) {
@@ -217,39 +231,64 @@ export function createTools({ repository, seenFields, inbox }) {
     return { ok: true, data: redactDeal({ question, unblocks }), field_names: fieldNames };
   }
 
-  // Saves one answer through the rules and the repository. The deal and the role come only from the turn.
+  // Saves 1 to MAX_FACTS_PER_SAVE answers through the rules and the repository, one save at the end. Each fact runs the
+  // same guards in order against the deal as the earlier facts left it. The deal and the role come only from the turn.
   async function saveAnswers({ turn, args }) {
-    const { fieldName, value } = oneAnswer(args);
+    const facts = factsOf(args);
     const deal = await repository.get(turn.dealId);
     if (!deal) return NO_DEAL;
     deal.answers ||= {};
     const engine = engineFor(deal);
-    const q = engine.QUESTIONS.find(x => x.k === fieldName);
-    if (!q) throw new ToolArgsError(UNKNOWN_SAVE_FIELD);
-    const refusal = checkWrite(turn.role, deal, engine, q);
-    if (refusal) return refusal;
+    const scope = { dealId: turn.dealId, sessionId: turn.sessionId, role: turn.role };
+    // The seen set as it stands before the call: a fact in a batch cannot make another fact seen.
+    const seen = new Set(await seenFields.list(scope));
+    const single = facts.length === 1;
+    const done = []; // per fact, in order: { refusal } or { q, value, result }
 
-    const result = engine.answer(q.k, value, SOURCE_BY_ROLE[turn.role] ?? 'Chat answer');
-    if (!result) throw new ToolArgsError(EMPTY_SAVE_VALUE);
+    for (const { fieldName, value } of facts) {
+      if (!seen.has(fieldName)) { done.push({ refusal: unseenField(seen) }); continue; }
+      const q = engine.QUESTIONS.find(x => x.k === fieldName);
+      if (!q) {
+        if (single) throw new ToolArgsError(UNKNOWN_SAVE_FIELD);
+        done.push({ refusal: fail('UNKNOWN_FIELD', UNKNOWN_SAVE_FIELD, UNSEEN_NEXT_STEP) });
+        continue;
+      }
+      const refusal = checkWrite(turn.role, deal, engine, q);
+      if (refusal) { done.push({ refusal }); continue; }
+      const result = engine.answer(q.k, value, SOURCE_BY_ROLE[turn.role] ?? 'Chat answer');
+      if (!result) {
+        if (single) throw new ToolArgsError(EMPTY_SAVE_VALUE);
+        done.push({ refusal: fail('BAD_ARGS', EMPTY_SAVE_VALUE, 'Ask the user for the answer again.') });
+        continue;
+      }
+      done.push({ q, value, result });
+    }
+
+    const stored = done.filter(d => !d.refusal);
+    // Nothing stored: the first refusal's own envelope (for one fact, exactly what it always was).
+    if (!stored.length) return done[0].refusal;
     await repository.save(deal);
 
     // Filter to the role first, then redact. The forms a role cannot see are not named to it.
     const visible = codes => codes.filter(code => canAccessForm(turn.role, code));
     const { view, fieldNames } = viewOf(turn.role, deal);
-    const names = [...new Set([q.k, ...fieldNames])];
-    await seenFields.add({ dealId: turn.dealId, sessionId: turn.sessionId, role: turn.role }, names);
-    return {
-      ok: true,
-      data: redactDeal({
-        saved: { field_name: q.k, value },
-        forms_added: visible(result.added),
-        forms_removed: visible(result.removed),
-        forms_filled: visible(result.filled).filter(hasTemplate),
-        flagged_forms: flaggedFormsOf(turn.role, engine, q),
+    const names = [...new Set([...stored.map(d => d.q.k), ...fieldNames])];
+    await seenFields.add(scope, names);
+    const outcome = d => ({
+      saved: { field_name: d.q.k, value: d.value },
+      forms_added: visible(d.result.added),
+      forms_removed: visible(d.result.removed),
+      forms_filled: visible(d.result.filled).filter(hasTemplate),
+      flagged_forms: flaggedFormsOf(turn.role, engine, d.q),
+    });
+    const data = single
+      ? { ...outcome(stored[0]), missing_fields: view.missing_fields }
+      : {
+        // A refused fact is named by its position, never by the name that was tried.
+        results: done.map((d, index) => d.refusal ? { index, ok: false, error: d.refusal.error } : { index, ok: true, ...outcome(d) }),
         missing_fields: view.missing_fields,
-      }),
-      field_names: names,
-    };
+      };
+    return { ok: true, data: redactDeal(data), field_names: names };
   }
 
   const getDealTool = name => ({
