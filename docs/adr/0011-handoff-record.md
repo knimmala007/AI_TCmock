@@ -11,6 +11,12 @@ Status: accepted (Oct 25 2026). It came out of the discussion of ticket 025; it 
 - The grant is marked `consumed` when the hand-off is recorded, so one approval covers one hand-off.
 - **Release and hand-off stay separate.** Release is access (which forms a role may see; the Release forms button, ticket 047). Hand-off is assignment (whose turn it is). For a buyer or lender recipient, every form in `forms` must already be released to that role; otherwise `hand_off` is refused. The released list never widens a role's access beyond `roles.js`.
 
+## Amended Oct 28 2026 (ADR 0013, ticket 024)
+- `hand_off` is assignment only. It appends the record and uses up the grant; it changes no access, form, stage or lock.
+- The seller as recipient needs no release (this closes the open question below). A buyer or lender does.
+- A release never widens **write** access: `save_answers` stays decided by `canAccessForm`. Read access may be widened only through `deal.delivered[role]`, a list written only by the broker's Release click (a human action on the server, never a model-callable tool, never by `hand_off`). Delivery is read access only.
+- **Open, to be decided in ticket 047's plan:** which seller-side forms may be delivered to a buyer, and whether the buyer sees the full content or a receipt (that the form was delivered, not its content). The shape of `deal.released` is also 047's call.
+
 ## Reasoning
 Chat threads are already keyed by deal, session and role (`threads.js`) and every role switch starts clean, so "no chat history" is the existing rule written down. The record reuses the who-and-when fields of ADR 0007. Keeping access and assignment apart means a hand-off cannot quietly grant access, and a release is not a claim that anyone is working on it.
 

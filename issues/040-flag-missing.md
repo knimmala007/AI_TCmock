@@ -28,4 +28,4 @@ handler.
 
 ## Notes
 
-Output shape comes from ticket 024.
+Output shape decided in ticket 024 (ADR 0013): a read-only report in the broker's turn, per form, from the `DOCS` fields with no value on the deal, the deal's `never_received` entry attached, nothing persisted; forms with no template are listed in `flagged_forms` by code. Errors: `NOT_FOUND`, `UNTESTED_JURISDICTION`, `ROLE_FORBIDDEN`.

@@ -13,8 +13,14 @@ No tool exists yet. The registry (`backend/roles.js`) lists names only. The spec
 5. ask_broker returns {ticket_id, status: "queued"} and puts the item {ticket_id, role, created_at, question} in the broker inbox, a store separate from the deal file, keyed by deal id. The question text is never delivered to any model call except the asker’s own turn. The broker reads the text through GET /api/inbox (broker session, no model call); the broker’s get_deal shows only ticket_id, role and created_at. QUESTION_TOO_LONG and INBOX_FULL are provisional transport codes. The audit trail is the tool_start and tool_end events (ticket 062); keeping the question text out of model-call events is ticket 064. explain_form text comes from DOCS metadata; a role-filtered code returns ROLE_FORBIDDEN; a code with no template returns a flag-only note.
 6. `request_approval` only records a request. It never sets an approval.
 
+## Amended Oct 28 2026 (ADR 0013, ticket 024)
+- **ok rule.** Decision 1's "`ok` is true if and only if something was stored" is replaced by: a tool's `ok` is true when it did what was asked: a write stored something, a read returned data, or what was asked was already true. A refusal or a decline is `ok: false`.
+- **Batches are per fact.** Decision 2's "role, required, snapshot and lock refusals reject the whole batch" is replaced: every refusal is reported per fact by position, and a batch stores the facts that pass. This is what the code and the spec do.
+- **Permanent transport codes.** `NOT_FOUND`, `NO_TEMPLATE`, `UNTESTED_JURISDICTION`, `QUESTION_TOO_LONG`, `INBOX_FULL` and `NO_PENDING_REQUEST` are no longer provisional. The ten status codes stay ten.
+- **Argument errors are plain text.** `UNKNOWN_TOOL`, `BAD_ARGS` and `TURN_LIMIT` are not envelope codes: the loop returns plain text for an unknown tool or bad arguments and ends the turn with a plain reply at a limit. The one exception is `BAD_ARGS` inside a batch's per-fact results.
+
 ## Reasoning
-One envelope gives the loop one failure path and one place for redaction, logging and the field-name guard. Per-fact results are the honest answer for a batch, while form-level refusals stay whole-batch because they are decided per form. Unblock count is computed from each question's `fills` (already in `rules.js`), so the browser keeps its simple order and the agent gets the better choice from the same module.
+One envelope gives the loop one failure path and one place for redaction, logging and the field-name guard. Per-fact results are the honest answer for a batch, and (amended Oct 28 2026) form-level refusals are per fact too. Unblock count is computed from each question's `fills` (already in `rules.js`), so the browser keeps its simple order and the agent gets the better choice from the same module.
 
 ## Consequences
 - The new `rules.js` function needs a test in `backend/tests/rules.test.js`. Ticket 033 lists `rules.js` only as a reference, so its Files line must change before it is built.

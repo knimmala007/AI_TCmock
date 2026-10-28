@@ -110,7 +110,14 @@ It is built from scratch with a hand-written loop (no agent framework, not a mes
 - The shared rules require the appraisal when the buyer is financing. The intake asks "Is the buyer financing the purchase with a lender loan?"; "Yes, with a lender loan" adds the appraisal and "No, all cash" adds nothing. This is what gives the Lender a form to see.
 - There is one save tool, named save answers, for every role that saves. It saves and validates in one call (it absorbs fill form and check state/county rules), accepts up to 15 facts, and runs the jurisdiction check and field-name guard inside.
 - Ask next question chooses the question in code by how many forms it unblocks, with a fixed tie-break. The model only phrases what the tool returns.
-- Full tool signatures are not yet decided (see Further Notes).
+- A tool's `ok` is true when it did what was asked: a write stored something, a read returned data, or what was asked was already true. A refusal or a decline is `ok: false`. Besides the ten status codes the envelope uses the transport codes `NOT_FOUND`, `NO_TEMPLATE`, `UNTESTED_JURISDICTION`, `QUESTION_TOO_LONG`, `INBOX_FULL` and `NO_PENDING_REQUEST`. An unknown tool, bad arguments and a limit are plain-text tool errors, except `BAD_ARGS` inside a batch's per-fact results (ADR 0013).
+- `get_deal_status` (seller, buyer, lender) is the same read as `get_deal`, limited to the role's view, with no inbox.
+- `flag_missing` (broker) is a read-only report in the broker's turn: per form, from the `DOCS` fields with no value on the deal, with the deal's never-received note attached to a field that has one. It persists nothing. A required form with no template is listed in `flagged_forms` by code.
+- `explain_form({code})` (seller, buyer, lender) returns repo text only: the `DOCS` metadata plus the text and why of the questions that feed the form. A code the role may not see is `ROLE_FORBIDDEN`; a visible code the deal does not require is `FORM_NOT_REQUIRED`; a visible code with no template returns `ok: true` and a fixed flag-only note.
+- `acknowledge_disclosure({code})` (buyer) appends `{form, by, at}` to `deal.acknowledgements`. It runs no snapshot or lock check. A form outside the buyer's view (its own forms plus forms delivered to it) is `ROLE_FORBIDDEN`. A repeat returns `ok: true`, `already: true` and the original time, and writes nothing.
+- `mark_clear_to_close` (lender) records `deal.loan.clear_to_close = {by: "lender", at}`. It changes no stage and has no stage gate; it is `FORM_NOT_REQUIRED` only when the appraisal is not required. A repeat is idempotent. The lender session's own statement counts as the attestation (ADR 0010), with the demo-mode caveat.
+- Disclosure delivery: a seller-side form becomes readable by the buyer only through `deal.delivered[role]`, written only by the broker's Release click. It grants read access only; saving stays gated by role. Which forms qualify and whether the buyer sees full content or a receipt are decided in ticket 047.
+- `request_approval` records one pending hand-off request per action (a newer one replaces it; no lock, no notice). `hand_off` is assignment only; the seller needs no release; a buyer or lender needs the forms released first (ADR 0011, 0013).
 
 **Guardrails (enforced in code, not only in the prompt)**
 - Transaction binding: one transaction per session; the orchestrator overwrites any transaction id the model supplies.
@@ -214,7 +221,7 @@ Prior art: the existing tests for the role registry, fixtures, repository, event
 ## Further Notes
 
 Open items, tracked in the reminders file:
-- Full signatures for every tool: the envelope and five tools are decided (ADR 0008); the rest are still open (ticket 024).
+- Decided: the signatures of every tool (ADR 0008 and ADR 0013, ticket 024).
 - Decided (ADR 0007, reminders Q-c): approval and lock state carry who and when at the same paths: `approval.snapshot = {forms, approved_by, approved_at}`, `locks[FORM] = {reason, set_by, set_at}`, `approvals[action] = {granted_by, granted_at, consumed?}` (for `hand_off` the grant also carries `to` and `forms`, ticket 043). `reopen_form` needs no prior grant: the broker's Reopen click is the approval.
 - The shape of the existing audit log and how this repo reaches it.
 - How the session carries the role once real sign-in exists.

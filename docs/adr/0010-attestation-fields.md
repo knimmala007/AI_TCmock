@@ -17,6 +17,9 @@ A field the assistant may never fill would stay unanswered. `rules.js` `pending(
 ## Proposed, not yet decided: form status and `flag_missing`
 So forms do not stay "Needs input" forever, the agent's form status needs a third state: a form whose only missing items are these fields is "awaiting statement" (the seller has not answered) or "awaiting signature" (answered; a person has not signed), using the `awaiting_signature` lock reason from ADR 0007. It becomes "Ready" only when a person signs, which no tool does. `flag_missing` lists unanswered attestation fields as "awaiting seller". Tickets 040 and 041 carry this once confirmed.
 
+## Amended Oct 28 2026 (ADR 0013, ticket 024): the lender's statement
+`mark_clear_to_close` follows the same rule as the seller's certifications. The lender session's own statement counts as the attestation; it is recorded as `deal.loan.clear_to_close = {by: "lender", at}`. No button is needed and the tool does not return `HUMAN_ATTESTATION_REQUIRED` to the lender. The demo-mode limit below applies to it too.
+
 ## Demo-mode limit
 In demo mode anyone can pick any role in the switcher, including seller (ADR 0006). The seller-only rule is therefore only as strong as the switcher: it stops the broker's, buyer's and lender's assistants from stating the certification, but it cannot prove that a real seller said it. A seller session's answer in the demo is not a real attestation. The rule becomes meaningful with real sign-in (R6, ticket 057). Code also cannot check that the model reported the seller's words faithfully; that is best effort, like the legal-advice guard.
 
