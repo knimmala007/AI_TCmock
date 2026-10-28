@@ -81,7 +81,8 @@ test('AC1: an empty thread is an empty list, and the response is never cached', 
   assert.deepStrictEqual(await res.json(), { messages: [] });
 });
 
-test('AC1: at most THREAD_MESSAGES_KEPT messages come back, the newest', async () => {
+// The cap itself is enforced by the write path (011); this checks the read returns what the cap kept.
+test('AC1: after more than THREAD_MESSAGES_KEPT messages, the read returns the newest THREAD_MESSAGES_KEPT', async () => {
   const w = world();
   for (let i = 0; i < THREAD_MESSAGES_KEPT; i++) await w.say(cookieFor('buyer'), `q${i}`);
   const { body } = await read(await w.history(get(cookieFor('buyer'))));
@@ -240,7 +241,15 @@ test('the endpoint file is wiring: it exports GET and no other method', () => {
   for (const m of ['POST', 'PUT', 'PATCH', 'DELETE']) assert.strictEqual(endpoint[m], undefined);
 });
 
-test('the history handler takes no model: it cannot call one', async () => {
+test('the history code imports nothing that can reach a model', async () => {
+  const { readFileSync } = await import('node:fs');
+  const imports = ['../history.js', '../../api/history.js'].flatMap(f =>
+    [...readFileSync(new URL(f, import.meta.url), 'utf8').matchAll(/^import .* from '(.+)';/gm)].map(m => m[1]));
+  assert.ok(imports.length > 0);
+  for (const spec of imports) assert.ok(!/model|agent_loop|agent_handler|tools|prompts|dailyCap/.test(spec), `history imports ${spec}`);
+});
+
+test('the history handler makes no model call, however often it is called', async () => {
   const w = world();
   await w.say(cookieFor('buyer'), 'hi');
   const callsBefore = w.state.modelCalls;

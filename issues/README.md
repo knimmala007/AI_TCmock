@@ -37,7 +37,7 @@
 | 028 | [Owner sets environment variables](028-owner-sets-environment-variables.md) | todo | 021, 027b | human |
 | 028a | [One manual real model run](028a-one-manual-real-model-run.md) | todo | 027b, 027c, 028 | human |
 | 029 | [Chat panel in the app](029-chat-panel-in-the-app.md) | done | 027a | agent |
-| 029b | [Chat history read](029b-chat-history-read.md) | todo | 029 | agent |
+| 029b | [Chat history read](029b-chat-history-read.md) | done | 029 | agent |
 | 029c | [Show chat history in `index_v2.html`](029c-show-chat-history-in-index-v2.md) | todo | 029b, 063 | agent |
 | 030 | [No-legal-advice code guard](030-no-legal-advice-guard.md) | done | 027c | agent |
 | 030a | [Polite off-topic refusal](030a-polite-off-topic-refusal.md) | done | 027d, 030 | agent |

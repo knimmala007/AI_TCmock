@@ -1,11 +1,11 @@
 # 029b: Chat history read
-Status: review pending | Depends on: 029 | Owner: agent | Size: S
+Status: done | Depends on: 029 | Owner: agent | Size: S
 
 ## What solving this does
 
 The chat panel can show the recent messages of the caller's own conversation after a page reload. Ticket 029a left this out, so the panel shows only the turns of the current page load.
 
-Files: create `api/history.js` (`GET` only), `backend/tests/chat_history.test.js` | modify `backend/agent_handler.js` only if needed to resolve session and role from the signed cookie exactly as the chat does; the builder must justify it in its plan | reference `backend/threads.js`, `backend/session.js`
+Files: create `api/history.js` (wiring, `GET` only), `backend/history.js` (the handler), `backend/tests/chat_history.test.js` | modify `backend/agent_handler.js` only if needed to resolve session and role from the signed cookie exactly as the chat does; the builder must justify it in its plan | reference `backend/threads.js`, `backend/session.js`
 
 ## Scope
 
@@ -14,7 +14,7 @@ Out: Any model call; any deal data beyond what the thread already holds; another
 
 ## Acceptance criteria
 
-1. A `GET` with a valid session returns that session's recent messages as `[{role, content}]`, oldest first, and makes no model call.
+1. A `GET` with a valid session returns that session's recent messages as `{messages: [{role, content}]}`, oldest first, and makes no model call.
 2. The thread is read with the scope `{dealId, sessionId, role}` taken from the signed cookie only.
 3. A role, session id or deal id in the query, body or headers changes nothing.
 4. A tampered or missing cookie gets 401 with fixed text and no thread.
