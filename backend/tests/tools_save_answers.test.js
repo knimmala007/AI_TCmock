@@ -36,9 +36,11 @@ const post = cookie => new Request('http://x/api/agent', {
   method: 'POST', body: JSON.stringify({ message: 'hi' }), headers: { 'content-type': 'application/json', cookie },
 });
 
+// Ticket 038: the seeded Austin deal is an untested jurisdiction, so these tests keep its data and set a tested city.
+const TESTED_CITY = { city: 'San Jose', county: 'Santa Clara' };
 // A copy of a seeded deal with the given answers; a session can only name a seeded deal id.
 const variant = (answers = {}, extra = {}) => ({
-  ...structuredClone(SEED_DEALS[OTHER]), ...extra,
+  ...structuredClone(SEED_DEALS[OTHER]), ...TESTED_CITY, ...extra,
   answers: Object.fromEntries(Object.entries(answers).map(([k, v]) => [k, { v, src: 'test' }])),
 });
 

@@ -5,7 +5,7 @@
 // are never read for either. Everything the model sees is filtered by role (roles.js) and then
 // passed through redactDeal (safety.js). Error text is fixed and carries no deal data (reminders R23).
 import { createEngine } from '../rules.js';
-import { MAX_FACTS_PER_SAVE } from './config.js';
+import { MAX_FACTS_PER_SAVE, isTestedJurisdiction } from './config.js';
 import { ToolArgsError } from './agent_loop.js';
 import { DOCS } from './fixtures.js';
 import { canAccessForm, stageFor, toolsFor } from './roles.js';
@@ -26,6 +26,16 @@ const hasTemplate = code => DOCS.some(x => x.code === code);
 // when something was stored, so a fact that feeds only untemplated forms is ok: false. The text is fixed and carries no data.
 export const NO_TEMPLATE = fail('NO_TEMPLATE', 'Not saved. The form this answer belongs to has no template yet, so it cannot be filled.',
   'Do not retry: the form needs a template, and nothing the user says will change that. Use ask_next_question for the next question.');
+
+// PROVISIONAL transport code, like NO_TEMPLATE: not one of the ten status codes, pending ticket 024. A deal outside the
+// tested list gets this and no rules (ticket 038, ADR 0002). ok is false: nothing was stored. The text is fixed and
+// names neither the city nor the county, so it carries no deal data.
+export const UNTESTED_JURISDICTION = fail('UNTESTED_JURISDICTION',
+  'This deal is in a jurisdiction the assistant has not been tested on, so it gives no rules or form guidance for it.',
+  'Tell the user a transaction coordinator must handle this deal, and stop. Do not call other rule-based tools.');
+
+// The one jurisdiction check, run right after a deal loads and before anything is read, added to the seen set or saved.
+const isUntested = deal => !isTestedJurisdiction(deal.city, deal.county);
 
 // Seller certifications (ADR 0010): only the seller session is asked them. Every other role skips them and
 // never counts them as candidates. Ticket 039 enforces the save side; the list is a constant here, not a rules.js flag.
@@ -203,6 +213,7 @@ export function createTools({ repository, seenFields, inbox }) {
   async function getDeal({ turn }) {
     const deal = await repository.get(turn.dealId);
     if (!deal) return NO_DEAL;
+    if (isUntested(deal)) return UNTESTED_JURISDICTION;
     const { view, fieldNames } = viewOf(turn.role, deal);
     await seenFields.add({ dealId: turn.dealId, sessionId: turn.sessionId, role: turn.role }, fieldNames);
     // Only the broker's view has an inbox key, and it never carries the question text (ADR 0008, ticket 050).
@@ -214,6 +225,7 @@ export function createTools({ repository, seenFields, inbox }) {
   async function askNextQuestion({ turn }) {
     const deal = await repository.get(turn.dealId);
     if (!deal) return NO_DEAL;
+    if (isUntested(deal)) return UNTESTED_JURISDICTION;
     const engine = engineFor(deal);
     const roleSkip = turn.role === 'seller' ? [] : ATTESTATION_FIELDS;
     const formFilter = code => canAccessForm(turn.role, code);
@@ -237,6 +249,7 @@ export function createTools({ repository, seenFields, inbox }) {
     const facts = factsOf(args);
     const deal = await repository.get(turn.dealId);
     if (!deal) return NO_DEAL;
+    if (isUntested(deal)) return UNTESTED_JURISDICTION;
     deal.answers ||= {};
     const engine = engineFor(deal);
     const scope = { dealId: turn.dealId, sessionId: turn.sessionId, role: turn.role };
@@ -291,6 +304,21 @@ export function createTools({ repository, seenFields, inbox }) {
     return { ok: true, data: redactDeal(data), field_names: names };
   }
 
+  // request_approval and hand_off load the deal themselves (approvals.js), so the check wraps them here: it reads the
+  // deal once, ahead of the tool, and the tool runs only for a tested jurisdiction.
+  function guardedApprovalTools() {
+    const tools = approvalTools({ repository, noDeal: NO_DEAL });
+    return Object.fromEntries(Object.entries(tools).map(([name, tool]) => [name, {
+      ...tool,
+      run: async ctx => {
+        const deal = await repository.get(ctx.turn.dealId);
+        if (!deal) return NO_DEAL;
+        if (isUntested(deal)) return UNTESTED_JURISDICTION;
+        return tool.run(ctx);
+      },
+    }]));
+  }
+
   const getDealTool = name => ({
     definition: DEFINITIONS[name],
     // Arguments are ignored whatever they are, so they must not change the repeated-call key either.
@@ -302,7 +330,7 @@ export function createTools({ repository, seenFields, inbox }) {
     // No `key`: the whole input counts, so sending the identical save again is the repeat the loop stops.
     save_answers: { definition: DEFINITIONS.save_answers, run: saveAnswers },
     ...(inbox ? { ask_broker: askBrokerTool({ inbox }) } : {}),
-    ...approvalTools({ repository, noDeal: NO_DEAL }),
+    ...guardedApprovalTools(),
   };
 
   return {
