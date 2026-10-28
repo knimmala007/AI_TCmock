@@ -66,6 +66,7 @@ Source citation is not a requirement (decided Q6). The wave-pattern idea for age
 
 | Date | Item | Verified |
 |------|------|----------|
+| 2026-10-28 | `GET /api/history` (029b): the caller's own thread as `{messages: [{role, content}]}`, scope from the signed cookie only, no model call, rate limited with the audit page's number in its own `history:` bucket (045 may give it its own constant). Chat text is not scrubbed of emails or phones on write, only `sk-ant-` keys. | `chat_history.test.js` (9 mutations run), `npm test` |
 | 2026-10-27 | `ask_broker` and the broker inbox (050): own store, `{ticket_id, status: "queued"}` only, broker-only `GET /api/inbox`, limits in `config.js`. Question-not-in-events test waits for 064. | `inbox.test.js` (12 mutations run), `npm test` (352 tests, 1 todo) |
 | 2026-10-27 | Refused turns, tool calls and the legal-guard refusal are logged without arguments or text (062). | `events.test.js`, `model_gate.test.js`, `agent_loop.test.js`, `agent_handler.test.js` |
 | 2026-10-28 | Forms with no template are flagged, never filled (035): `NO_TEMPLATE`, `flagged_forms`, `ask_next_question` skips flag-only questions and says so (`ONLY_UNTEMPLATED_LEFT`). | `tools_save_answers.test.js` (364 tests in `npm test`) |
