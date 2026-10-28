@@ -1,5 +1,5 @@
 # 040: `flag_missing` lists what is missing
-Status: todo | Depends on: 024, 031 | Owner: agent | Size: S
+Status: review pending | Depends on: 024, 031 | Owner: agent | Size: S
 
 ## What solving this does
 
