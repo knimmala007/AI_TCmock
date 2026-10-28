@@ -11,6 +11,7 @@ import { cookieName, sessionFromRequest, signSession } from '../session.js';
 import { createAgentHandler } from '../agent_handler.js';
 import { TOOL_NOT_ALLOWED } from '../agent_loop.js';
 import { createInboxHandler, createInboxStore } from '../inbox.js';
+import { createEventsPageHandler } from '../events_page.js';
 import { toolsFor } from '../roles.js';
 import { INBOX_ITEMS_PER_DEAL_MAX, INBOX_QUESTION_MAX_CHARS } from '../config.js';
 
@@ -162,14 +163,48 @@ test('seller, buyer and lender are offered ask_broker', async () => {
   }
 });
 
-// TODO: this fails today. modelGate logs the full request and reply of every model call (model_gate.js), so the asker's own
-// tool_use input (the question) is already in model_call_start / model_call_end. Fixing it means editing model_gate.js or
-// events.js, outside this ticket's Files line. Marked todo so the suite stays green and the gap stays visible.
-test('the question text appears in no stored event', { todo: 'ticket 064: model_call events carry the asker\'s own tool_use input' }, async () => {
+// What is logged is unchanged (model_call events still hold the asker's own tool_use input, ticket 062). The property is that
+// only the broker can read it: no other role reaches the text through an endpoint or a tool result (ticket 064).
+test('after a buyer\'s ask_broker, no non-broker role can read the question through an endpoint or a tool result', async () => {
   const w = world();
-  await w.ask('buyer');
-  assert.ok(w.store.rows.length > 0);
-  assert.ok(!JSON.stringify(w.store.rows).includes('ZEBRA-7731'));
+  const { result: askResult } = await w.ask('buyer');
+  assert.ok(!askResult.content.includes('ZEBRA-7731'));
+  // Positive control: the text is stored and logged, so a leak would be visible to the checks below.
+  assert.ok(JSON.stringify(w.store.rows).includes('ZEBRA-7731'));
+  const turnIds = [...new Set(w.store.rows.map(r => r.turn_id))];
+  assert.ok(turnIds.length > 0);
+
+  const getSession = r => sessionFromRequest(r, env);
+  const inboxGet = endpoint(w.inbox);
+  const eventsGet = createEventsPageHandler({ eventLog: createEventLog(w.store), getSession });
+  const asRole = (role, url) => new Request(url, { headers: { cookie: cookieFor(role) } });
+
+  const brokerEvents = await (await eventsGet(asRole('broker', `http://x/api/events?turn=${turnIds[0]}`))).text();
+  assert.ok(brokerEvents.includes('ZEBRA-7731'), 'the broker can read the events');
+  assert.ok((await (await inboxGet(cookieFor('broker'))).text()).includes('ZEBRA-7731'), 'the broker can read the inbox');
+
+  for (const role of ['seller', 'buyer', 'lender']) {
+    for (const res of [
+      await inboxGet(cookieFor(role)),
+      await eventsGet(asRole(role, 'http://x/api/events')),
+      ...await Promise.all(turnIds.map(t => eventsGet(asRole(role, `http://x/api/events?turn=${encodeURIComponent(t)}`)))),
+    ]) {
+      assert.strictEqual(res.status, 403, role);
+      assert.ok(!(await res.text()).includes('ZEBRA-7731'), role);
+    }
+    // The tool results this role can receive: the deal status and its own ask_broker reply.
+    const { result: status } = await w.look(role);
+    assert.ok(!status.content.includes('ZEBRA-7731'), role);
+    const { result: asked } = await w.ask(role, { question: 'KIWI-2209' });
+    assert.ok(!asked.content.includes('ZEBRA-7731'), role);
+  }
+
+  // Seller and lender never asked ZEBRA-7731; no model request of their turns carries it either (the buyer's own
+  // later turns replay the buyer's own thread, so they are not checked here).
+  for (const role of ['seller', 'lender']) {
+    const { requests } = await w.look(role);
+    assert.ok(!JSON.stringify(requests).includes('ZEBRA-7731'), role);
+  }
 });
 
 test('a question over the limit is refused with fixed text that does not echo it, and stores nothing', async () => {
