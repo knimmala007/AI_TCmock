@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.pdf': 'application/pdf' };
-const ALLOWED = new Map([['/', 'index.html'], ['/index.html', 'index.html'], ['/rules.js', 'rules.js']]);
+const ALLOWED = new Map([['/', 'index.html'], ['/index.html', 'index.html'], ['/index_v2.html', 'index_v2.html'], ['/rules.js', 'rules.js']]);
 
 // Only /docs/<name>.pdf, with a plain file name: no subdirectories, no dots except the extension.
 const PDF = /^\/docs\/([A-Za-z0-9-]+)\.pdf$/;

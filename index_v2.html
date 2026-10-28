@@ -160,6 +160,12 @@
   .composer .choices,.composer .docask{margin-top:0}
   .composer .fillbox{margin-top:0!important}
   .composer .fillbox input{font-size:14px;padding:10px 12px;border-radius:10px}
+  /* Live assistant panel: every line is set with textContent, so pre-wrap keeps the author's line breaks. */
+  .apchat .msg{white-space:pre-wrap;overflow-wrap:anywhere}
+  .apchat .msg.note{align-self:stretch;max-width:none;background:var(--warn-soft);border:1px solid #fde68a;color:#92400e;font-size:13px}
+  .apchat .chat-note{max-width:760px;width:100%;margin:0 auto;font-size:12.5px;color:#92400e}
+  .apchat .chat-form{max-width:760px;width:100%;margin:0 auto;display:flex;gap:8px}
+  .apchat .chat-form input{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit}
   .vtrack{display:flex;flex-direction:column}
   .vstep{display:flex;gap:10px;position:relative;padding-bottom:22px}
   .vstep:not(:last-child)::before{content:"";position:absolute;left:11px;top:26px;bottom:2px;width:2px;background:var(--line)}
@@ -1488,8 +1494,88 @@ function labView(){
 /* ==========================================================================
    VIEWS
    ========================================================================== */
+/* Backend wiring (ticket 063). Demo mode, no sign-in: the role switcher asks the server to start a
+   session for a role, and the server answers with an HttpOnly cookie that this page cannot read.
+   /api/agent gets only {message}; the server takes the role from that cookie. The panel belongs to
+   one role: a switch empties it, and Send stays off until the switch has succeeded. Every string
+   shown in the panel is set with textContent, and anything but a 200 reply is one of the fixed
+   messages below, never a response body. */
+const DEMO_ROLES = ['broker','seller','buyer','lender'];
+const CHAT_INTRO = 'Ask the assistant about this transaction.';
+const CHAT_NOTE = {
+  pending: 'Starting a session for this role…',
+  nosession: 'Could not start a session for this role. Pick the role again to retry.',
+  unreachable: 'Could not reach the assistant. Please try again.',
+  401: 'Pick a role first.',
+  403: 'This role is not allowed to do that.',
+  429: 'You are sending messages too quickly. Please wait a minute and try again.',
+  503: 'The assistant is not available right now. Please try again later.',
+  other: 'Something went wrong. Please try again.',
+};
+// state: 'pending' (switch in flight) | 'ready' (session set for CHAT.role) | 'failed' (Send stays off)
+let CHAT = {role:null, msgs:[], busy:false, gen:0, state:'pending', note:CHAT_NOTE.pending};
+
+async function syncDemoRole(r){
+  if(!DEMO_ROLES.includes(r)) return false;
+  try{
+    const res = await fetch('/api/demo-session',{method:'POST',headers:{'content-type':'application/json'},
+      credentials:'same-origin',body:JSON.stringify({role:r})});
+    return res.ok;
+  }catch(e){ return false; }
+}
+// Start a clean panel for role r, then ask the server for its session. The old thread is never reused.
+async function switchChatRole(r){
+  CHAT = {role:r, msgs:[], busy:false, gen:CHAT.gen+1, state:'pending', note:CHAT_NOTE.pending};
+  const gen = CHAT.gen;   // the caller (render) paints the empty panel
+  const ok = await syncDemoRole(r);
+  if(CHAT.gen!==gen) return;   // the role changed again while waiting
+  CHAT.state = ok ? 'ready' : 'failed';
+  CHAT.note = ok ? '' : CHAT_NOTE.nosession;
+  renderChat();
+}
+function chatLine(status, body){
+  if(status===200 && body && typeof body.reply==='string') return {who:'agent', text:body.reply};
+  return {who:'note', text: CHAT_NOTE[status] || CHAT_NOTE.other};
+}
+function renderChat(){
+  const log = $('#chat-log'); if(!log) return;
+  const live = CHAT.role===role;   // never paint another role's thread
+  const msgs = live ? CHAT.msgs : [];
+  const state = live ? CHAT.state : 'pending';
+  const line = (cls, text)=>{ const d=document.createElement('div'); d.className='msg '+cls; d.textContent=text; return d; };
+  log.replaceChildren(...(msgs.length
+    ? msgs.map(m=>line(m.who==='you'?'me':m.who==='agent'?'bot':'note', m.text))
+    : [line('bot', CHAT_INTRO)]));
+  const note = $('#chat-note'); note.textContent = state==='ready' ? '' : (live ? CHAT.note : CHAT_NOTE.pending);
+  note.hidden = !note.textContent;
+  const off = state!=='ready' || CHAT.busy;
+  $('#chat-send').disabled = off; $('#chat-in').disabled = state!=='ready';
+  const s = $('#chatScroll'); if(s) s.scrollTop = s.scrollHeight;
+}
+async function chatSend(text){
+  const c = CHAT;
+  if(!text || c.role!==role || c.state!=='ready' || c.busy) return;
+  const gen = c.gen;
+  c.busy = true; c.msgs.push({who:'you', text}); renderChat();
+  let line;
+  try{
+    const r = await fetch('/api/agent',{method:'POST',headers:{'content-type':'application/json'},
+      credentials:'same-origin',body:JSON.stringify({message:text})});
+    const body = await r.json().catch(()=>null);
+    line = chatLine(r.status, body);
+    if(r.status===401 && CHAT.gen===gen){ c.state = 'failed'; c.note = CHAT_NOTE[401]; }   // cookie gone: re-pick the role
+  }catch(e){ line = {who:'note', text:CHAT_NOTE.unreachable}; }
+  if(CHAT.gen!==gen) return;   // the role changed while waiting: this reply belongs to the old session
+  c.busy = false; c.msgs.push(line); renderChat();
+}
+window.sendChat = ()=>{
+  const box = $('#chat-in'); const text = String(box.value||'').trim();
+  if(!text || CHAT.busy) return;
+  box.value = ''; chatSend(text);
+};
+
 const ROLE_VIEWS = ['broker','seller','buyer','lender'];
-const DEV_VIEWS  = {lab:'Run the scripted test cases', agent:'Original intake screen', files:'Source documents',
+const DEV_VIEWS = {lab:'Run the scripted test cases', agent:'Original intake screen', files:'Source documents',
                     audit:'Who can see which document', eval:'Evaluation results'};
 
 // Top bar: Dashboard / Chat on the left, the role switcher on the right, testing screens tucked into "Dev".
@@ -1505,9 +1591,11 @@ function renderRoles(){
       `<button class="${k===view?'on':''}" onclick="setView('${k}')">${VIEWERS[k].label}<small>${d}</small></button>`).join('')}</div>`;
   $('#dev').open = false;   // close the menu after a choice
 }
-window.setView = v=>{ view=v; if(ROLE_VIEWS.includes(v)) role=v; render(); };
+// (render() starts the demo session whenever the role differs from the chat panel's role.)
+window.setView = v=>{ view=v; if(ROLE_VIEWS.includes(v)){ role=v; if(CHAT.state==='failed') CHAT.role=null; } render(); };
 // Switching role keeps you on the Dashboard if you're there; otherwise it opens that role's chat.
-window.pickRole = r=>{ role=r; if(view!=='dashboard') view=r; render(); };
+// Picking the role again after a failed switch retries it.
+window.pickRole = r=>{ role=r; if(CHAT.state==='failed') CHAT.role=null; if(view!=='dashboard') view=r; render(); };
 // From the Dashboard: jump into the chat screen with a given middle panel (chat, messages, workflow…)
 window.goShell = c=>{ view=role; center=c; render(); };
 // (A function, not onclick="setView(role)": inside an onclick, `role` means the button's own ARIA role.)
@@ -1792,7 +1880,7 @@ function sidebarCol(){
     <div class="scroll">
       <div class="colhd">Chats</div>
       <button class="hist ${center==='chat'?'on':''}" onclick="setCenter('chat')">
-        ${esc(DEAL.address || 'New transaction')}<small>${INTAKE.log.length} of ${intakeProgress().total} answered</small></button>
+        ${esc(DEAL.address || 'New transaction')}</button>
     </div>
     <div class="foot">
       <button class="ghost ${center==='messages'?'on':''}" onclick="setCenter('messages')">✉ Messages</button>
@@ -1801,18 +1889,12 @@ function sidebarCol(){
 }
 
 function chatCol(){
-  const q = nextQ();
-  const bubbles = INTAKE.log.map(e=>`<div class="msg bot">${e.q}</div><div class="msg me">${esc(e.v)}</div>
-    ${e.filled.length?`<div class="msg-note">Filled ${e.filled.length} form${e.filled.length===1?'':'s'}${e.added.length?` · added ${e.added.join(', ')}`:''}</div>`:''}`).join('');
-  const intro = `<div class="msg bot">Hi — I'll collect everything the disclosure package needs, one question at a
-    time. Each answer fills every form that uses it.</div>`;
-  const last = q ? `<div class="msg bot">${q.q}<div class="why">${q.why}</div></div>`
-                 : `<div class="msg bot">That's everything — the package is complete.</div>`;
-  const composer = q ? qInput(q)
-    : `<button class="act" onclick="resetIntake()">Start over</button>`;
-  return `<section class="col">
-    <div class="scroll" id="chatScroll"><div class="thread">${intro}${bubbles}${last}</div></div>
-    <div class="foot"><div class="composer">${composer}</div></div>
+  return `<section class="col apchat">
+    <div class="scroll" id="chatScroll"><div class="thread" id="chat-log"></div></div>
+    <div class="foot"><div class="chat-note" id="chat-note" role="status" hidden></div>
+      <form class="chat-form" onsubmit="event.preventDefault();sendChat()">
+        <input id="chat-in" autocomplete="off" placeholder="Type a message" aria-label="Message">
+        <button class="act" id="chat-send" type="submit">Send</button></form></div>
   </section>`;
 }
 
@@ -1993,6 +2075,7 @@ function dashboardView(v){
 
 function render(){
   if(SHELL_VIEWS.includes(view)) role = view;   // keep the switcher in step when other code changes the view
+  if(DEMO_ROLES.includes(role) && CHAT.role!==role) switchChatRole(role);   // new role: new session, empty panel
   renderRoles();
   if(view==='dashboard'){ $('#app').className=''; $('#app').innerHTML = dashboardView(VIEWERS[role]); return; }
   const shell = SHELL_VIEWS.includes(view) && !RUN.playing;
@@ -2000,8 +2083,8 @@ function render(){
   if(shell){
     const v = VIEWERS[view];
     $('#app').innerHTML = sidebarCol() + centerCol(v) + railCol(v);
-    const s = $('#chatScroll'); if(s) s.scrollTop = s.scrollHeight;   // keep the newest message in view
-    const inp = $('.composer input'); if(inp) inp.focus();
+    renderChat();
+    const inp = $('#chat-in'); if(inp && !inp.disabled) inp.focus();
     return;
   }
   const v=VIEWERS[view];
